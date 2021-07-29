@@ -4,11 +4,7 @@ function diffL = computeDiffL(pwImg,psTPM,i,j)
 % Input:
 % pwImg - preprocessed and spatial normalized image
 % psTPM - preprocessed and shrunken TPM images
-% i,j   - ROI index
-% Output:
-% diffL - the size of change before and after the merger
-% Author: ZhangTianhao, 2021/7/29
-% =========================================================================
+% i,j   - 
 newTPM = psTPM;
 newTPM(:,i) = psTPM(:,i)+psTPM(:,j);
 newTPM(:,j) = [];

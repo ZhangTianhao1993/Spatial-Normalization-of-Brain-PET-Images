@@ -1,5 +1,6 @@
 function sTPM = shrinkImg(TPM,mask)
-% 考虑PET的部分容积效应，对atlas进行适当的缩小
+% Consider the partial volume effect of PET, and appropriately reduce the 
+% atlas
 [x,y,z,n] = size(TPM);
 sTPM = zeros(x,y,z,n);
 se = strel('sphere',1);

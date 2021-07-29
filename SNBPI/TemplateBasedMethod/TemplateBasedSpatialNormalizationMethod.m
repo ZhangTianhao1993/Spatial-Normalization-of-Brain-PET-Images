@@ -1,4 +1,5 @@
-function TemplateBasedSpatialNormalizationMethod(Templatename,PETnames,bbox,voxelsize,normprefix,d)
+function TemplateBasedSpatialNormalizationMethod(Templatename,PETnames,...
+    bbox,voxelsize,normprefix,d)
 % This is a SPM batch for template based brain PET images spatial normalization.
 % 
 % Templatename: The file name for the template image.
@@ -8,8 +9,8 @@ function TemplateBasedSpatialNormalizationMethod(Templatename,PETnames,bbox,voxe
 % normprefix: The prefix for normalized PET image.
 % d: For recording progress bar
 %
-% Author: Zhang Tianhao
-% Data: 2021-6-13
+% Author: Zhang Tianhao 2017/7/29
+% =========================================================================
 
 n = length(PETnames);
 %nrun = X; % enter the number of runs here

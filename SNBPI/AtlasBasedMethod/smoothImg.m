@@ -1,6 +1,5 @@
-% List of open inputs
-% Smooth: Images to smooth - cfg_files
 function smoothImg(imageNamei)
+% smoothing image using SPM batch code
 matlabbatch{1}.spm.spatial.smooth.data = '<UNDEFINED>';
 matlabbatch{1}.spm.spatial.smooth.fwhm = [3 3 3];
 matlabbatch{1}.spm.spatial.smooth.dtype = 0;

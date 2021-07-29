@@ -1,4 +1,5 @@
 function deleteFiles(imageNamei)
+% Delete files
 [filepath,name,ext] = fileparts(imageNamei);
 cName = [filepath,'\c',name,'.nii'];
 sName = [filepath,'\s',name,'.nii'];

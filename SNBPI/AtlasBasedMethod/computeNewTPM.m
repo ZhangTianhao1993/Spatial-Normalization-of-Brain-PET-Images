@@ -1,4 +1,7 @@
-function [newTPM,BIClist,maxIndexList] = computeNewTPM(tempImgName,TPM,mask,x,y,z,regularterm)
+function [newTPM,BIClist,maxIndexList] = computeNewTPM(tempImgName,TPM,...
+    mask,x,y,z,regularterm)
+% Generating Adaptive Brain Probabilistic Atlas
+
 fprintf('Generating Adaptive Brain Probabilistic Atlas...\n');
 v = spm_vol(tempImgName);
 wImg = spm_read_vols(v);

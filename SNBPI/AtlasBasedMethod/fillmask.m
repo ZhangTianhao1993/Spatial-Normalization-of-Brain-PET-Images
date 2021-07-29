@@ -1,5 +1,5 @@
 function filledmask = fillmask(mask)
-% 将mask中的空洞补全
+% Fill the holes in the mask
 [x,y,z] = size(mask);
 filledmask = mask;
 for i=1:z

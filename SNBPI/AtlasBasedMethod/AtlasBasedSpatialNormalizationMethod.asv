@@ -1,15 +1,16 @@
 function AtlasBasedSpatialNormalizationMethod(PETnames,bbox,vx,nf,rt,d,s)
 % The main function for atlas based method
-% PETnames - The names of the PET images
-% bbox     - Bounding box, a 2* 3 matrix which determine the min and max X,
-%            Y, and Z.
-% vx       - Voxel size, a 1*3 vecotr of voxel dimensions (mm).
-% nf       - The prefix for normalized image, a char.
-% rt       - Regular term, a real number.
-% d        - a progress bar object
-% s        - a logic variable which indicate whether save the TPM for 
-%           spatial normalization
-% Author: Zhang Tianhao 2021/7/29
+% PETnames    - The names of the PET images
+% bbox - Bounding box, a 2* 3 matrix which determine the min and max X,Y, 
+%               and Z.
+% vx          - Voxel size, a 1*3 vecotr of voxel dimensions (mm).
+% nf - The prefix for normalized image, a char.
+% rt - Regular term, a real number.
+% d           - a progress bar object
+% s - a logic variable which indicate whether save the TPM for 
+%           spatial
+%   normalization
+% Author: ZhangTianhao 2021/7/29
 % =========================================================================
 
 n = length(PETnames);

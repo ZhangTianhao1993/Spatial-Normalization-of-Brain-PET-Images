@@ -1,4 +1,5 @@
-function MRIBasedSpatialNormalizationMethod(MRInames,PETnames,bbox,voxelsize,coregprefix,normprefix,d)
+function MRIBasedSpatialNormalizationMethod(MRInames,PETnames,bbox,...
+    voxelsize,coregprefix,normprefix,d)
 % This is a SPM batch for MRI based brain PET images spatial normalization.
 %
 % MRInames: The files names for MRI images.
@@ -9,8 +10,8 @@ function MRIBasedSpatialNormalizationMethod(MRInames,PETnames,bbox,voxelsize,cor
 % normprefix: The prefix for normalized PET image.
 % d: For recording progress bar
 %
-% Author: Zhang Tianhao
-% Data: 2021-6-13
+% Author: Zhang Tianhao 2021/7/29
+% =========================================================================
 
 n = length(MRInames);
 str = which('SNBPI');

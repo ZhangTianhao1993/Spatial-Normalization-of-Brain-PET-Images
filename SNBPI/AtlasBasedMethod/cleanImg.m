@@ -1,5 +1,11 @@
 function cleanImg(imageNamei)
-% 去掉PET图像周围的噪点
+% Remove noise around the brain image
+% Input:
+% imageNamei - An image name
+% Output:
+%   A clean imge file. (.nii)
+% Author: Zhang Tianhao, 2021/7/29
+% =========================================================================
 smoothImg(imageNamei);
 v = spm_vol(imageNamei);
 img = spm_read_vols(v);
