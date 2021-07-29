@@ -3,7 +3,7 @@
 A toolbox for spatial normalization of brain PET images
 ## Required
 * matlab 2020a or later
-* spm12
+* SPM12
 ## Function
 * Three methods for spatial normalization of brain PET images
    * MRI based method
@@ -12,7 +12,7 @@ A toolbox for spatial normalization of brain PET images
 * Intensity normalization (SUVR)
 * Extract ROI SUVR based on atlas
 ## Usage
-Add the folder SNBPI to the path of matlab, enter 
+Add the folder SNBPI to the path of matlab, and make sure you have already install SPM12 correctly, enter 
    ```
 SNBPI
    ```
