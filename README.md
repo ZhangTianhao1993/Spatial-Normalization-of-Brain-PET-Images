@@ -1,9 +1,9 @@
 # SNBPI
 
 A toolbox for spatial normalization of brain PET images
-## Required
+## Requirements
 * matlab 2020a or later
-* SPM12
+* SPM12 (https://www.fil.ion.ucl.ac.uk/spm/)
 ## Function
 * Three methods for spatial normalization of brain PET images
    * MRI based method
