@@ -1,6 +1,8 @@
 # SNBPI
 
-A toolbox for spatial normalization of brain PET images
+A toolbox for spatial normalization of brain PET images  
+Please cite the original article:  
+* Spatial Normalization of Brain PET Image Using Adaptive Brain Probabilistic Atlas
 ## Requirements
 * matlab 2020a or later
 * SPM12 (https://www.fil.ion.ucl.ac.uk/spm/)
