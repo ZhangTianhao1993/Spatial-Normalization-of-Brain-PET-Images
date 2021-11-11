@@ -2,7 +2,7 @@
 
 A toolbox for spatial normalization of brain PET images  
 Please cite the original article:  
-* Spatial Normalization of Brain PET Image Using Adaptive Brain Probabilistic Atlas
+* Unified Spatial Normalization of Brain PET Image Using Adaptive Brain Probabilistic Atlas
 ## Requirements
 * matlab 2020a or later
 * SPM12 (https://www.fil.ion.ucl.ac.uk/spm/)
@@ -16,7 +16,7 @@ Please cite the original article:
 The atlas-based spatial normalization algorithm is divided into three steps. First, the unified segmentation algorithm in SPM12 with the TPM (Tissue Probability maps) of gray matter, white matter, CSF, skin, skull and background was used to roughly spatial normalize the PET images. Since not all PET images can be simply modeled with the TPM, this step is just used to achieve approximate alignment. Then, the adaptive brain probabilistic atlas generation algorithm was used to generate the adaptive brain probabilistic atlas for each individual PET image. The adaptive brain probabilistic atlas is used to model the voxel intensity pattern of the corresponding brain PET image.  Finally, the unified segmentation algorithm in SPM12 with the adaptive brain probabilistic atlas was used to spatial normalize each individual PET image. The flowchart of the atlas-based spatial normalization algorithm was shown below.
 ![alt text](/SNBPI/Figures/flowchart.png "Title")
 * Intensity normalization (SUVR)  
-Six reference regions (Brain stem, Cerebellum, Gray matters in Cerebellum, Cerebellum add Brain stem, White matter, Whole brain) were preseted in the toolbox. You can also make you own reference region in MNI space for intensity normalization.
+Two methods can be selected for intensity normalization (mean and median). Six reference regions (Brain stem, Cerebellum, Gray matters in Cerebellum, Cerebellum add Brain stem, White matter, Whole brain) were preseted in the toolbox. You can also make you own reference region in MNI space for intensity normalization. 
 * Extract ROI SUVR based on atlas  
 Two commonly used atlas (AAL and brodmann) for human brain were preset in the toolbox. Similar, you can create you own ROI in MNI space and extrac the intensity value of the ROI regions from PET images.
 ## Usage
