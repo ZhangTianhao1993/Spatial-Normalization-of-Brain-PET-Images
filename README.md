@@ -2,7 +2,7 @@
 
 A toolbox for spatial normalization of brain PET images  
 Please cite the original article:  
-* Unified Spatial Normalization of Brain PET Image Using Adaptive Brain Probabilistic Atlas
+* Unified Spatial Normalization of Brain PET Image Using Adaptive Brain Probabilistic Atlas (unpublished)
 ## Requirements
 * matlab 2020a or later
 * SPM12 (https://www.fil.ion.ucl.ac.uk/spm/)
