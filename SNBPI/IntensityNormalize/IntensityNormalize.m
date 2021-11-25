@@ -26,6 +26,7 @@ for i=1:n
     filename = imagevi.fname;
     [filepath,name,ext] = fileparts(filename);
     imagevi.fname = [filepath,'\',prefix,name,ext];
+    imagevi.dt = [16,0];
     spm_write_vol(spm_create_vol(imagevi),imagei);
     d.Value = i/n;
 end
