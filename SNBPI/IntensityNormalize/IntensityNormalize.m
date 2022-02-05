@@ -10,7 +10,7 @@ referenceName = referenceName{1};
 referenceName(end-1:end) = [];
 referenceMask = deformImgBasedOnOtherImg(referenceName,imageName1);
 referenceMask(isnan(referenceMask)) = 0;
-referenceMask = referenceMask == 1;
+referenceMask = referenceMask > 0.9;
 
 for i=1:n
     imagenamei = imageNames{i};
