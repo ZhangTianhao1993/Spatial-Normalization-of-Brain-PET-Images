@@ -6,7 +6,7 @@ function [newTPM,maxIndex] = fusionTPM(pwImg,psTPM)
     muList = estimatePara(pwImg,psTPM);
     [sTPM,I] = sortTPM(psTPM,muList); 
     maxIndex = zeros(2,1);
-    maxdiffL = computeDiffL(pwImg,psTPM,1,2)-100;
+    maxdiffL = computeDiffL(pwImg,sTPM,1,2)-100;
 
     for i=1:TPMnum-1
         for n = 1:5
