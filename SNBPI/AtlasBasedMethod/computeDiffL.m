@@ -1,4 +1,4 @@
-function diffL = computeDiffL(pwImg,psTPM,i,j)
+function diffL = computeDiffL(pwImg,psTPM,i,j,baselineLogL)
 % Given two ROI indexes, calculate the size of the log-likelihood change 
 % before and  after the merger
 % Input:
@@ -12,4 +12,4 @@ function diffL = computeDiffL(pwImg,psTPM,i,j)
 newTPM = psTPM;
 newTPM(:,i) = psTPM(:,i)+psTPM(:,j);
 newTPM(:,j) = [];
-diffL = computeLogLikelihood(pwImg,newTPM)-computeLogLikelihood(pwImg,psTPM);
+diffL = computeLogLikelihood(pwImg,newTPM)-baselineLogL;

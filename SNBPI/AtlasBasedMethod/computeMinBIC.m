@@ -19,5 +19,5 @@ for i=1:n
    if i<n
        [psTPM,maxIndexList(i,:)] = fusionTPM(pwImg,psTPM); 
    end
-  % fprintf('%d\n',i);
+   %fprintf('%d\n',i);
 end

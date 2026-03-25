@@ -1,6 +1,6 @@
 function finalNormalize(imageName,TPMnum,bbox,voxelsize,normprefix)
 [filepath,imagename,ext] = fileparts(imageName);
-cimageName = [filepath,'\c',imagename,ext];
+cimageName = fullfile(filepath, ['c', imagename, ext]);
 
 matlabbatch{1}.spm.spatial.preproc.channel.vols = '<UNDEFINED>';
 matlabbatch{1}.spm.spatial.preproc.channel.biasreg = 0.001;
@@ -29,7 +29,7 @@ jobs = matlabbatch;
 inputs = cell(TPMnum+2, 1);
 inputs{1, 1} = {cimageName}; % Segment: Volumes - cfg_files
 for i=1:TPMnum
-    inputs{1+i, 1} = {[filepath,'\TPM',num2str(i),imagename,'.nii']}; % Segment: Tissue probability map - cfg_files
+    inputs{1+i, 1} = {fullfile(filepath, ['TPM', num2str(i), imagename, '.nii'])}; % Segment: Tissue probability map - cfg_files
 end
 inputs{TPMnum+2, 1} = {imageName}; % Normalise: Write: Images to Write - cfg_files
 spm('defaults', 'FMRI');

@@ -16,6 +16,6 @@ name(1:4) = [];
 for i=1:TPMnum
     TPMvi = v;
     TPMvi.dt = [16 0];
-    TPMvi.fname = [filepath,'\TPM',num2str(i),name,'.nii'];
+    TPMvi.fname = fullfile(filepath, ['TPM', num2str(i), name, '.nii']);
     spm_write_vol(spm_create_vol(TPMvi),newTPM(:,:,:,i));
 end

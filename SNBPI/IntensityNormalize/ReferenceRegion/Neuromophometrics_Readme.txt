@@ -1,0 +1,3 @@
+Neuromophometrics_BrainStem是Neuromophometrics中Index等于35，即Brain Stem的位置
+Neuromophometrics_cerebellum是Neuromophometrics中Index等于[38,39,40,41,71,72,73]的位置，包括了Cerebellum Exterior, Cerebellum White Matter和Cerebellar Vermal Lobules I-X
+Neuromophometrics_cerebellumgray则是小脑灰质，即Neuromophometrics_cerebellum去掉white matter，位置Indx为[38,39,71,72,73]

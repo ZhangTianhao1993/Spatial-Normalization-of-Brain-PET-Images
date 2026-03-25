@@ -1,0 +1,56 @@
+[ TD Labels]
+53	Angular Gyrus			191 191 191
+39	Anterior Cingulate		191 191 191
+36	Caudate				191 191 191
+27	Cerebellar Lingual		191 191 191
+2	Cerebellar Tonsil		191 191 191
+52	Cingulate Gyrus			191 191 191
+43	Claustrum			191 191 191
+15	Culmen				191 191 191
+33	Culmen of Vermis		191 191 191
+40	Cuneus				191 191 191
+18	Declive				191 191 191
+21	Declive of Vermis		191 191 191
+35	Extra-Nuclear			191 191 191
+22	Fastigium			191 191 191
+10	Fourth Ventricle		191 191 191
+19	Fusiform Gyrus			191 191 191
+26	Inferior Frontal Gyrus		191 191 191
+30	Inferior Occipital Gyrus	191 191 191
+51	Inferior Parietal Lobule	191 191 191
+1	Inferior Semi-Lunar Lobule	191 191 191
+3	Inferior Temporal Gyrus		191 191 191
+42	Insula				191 191 191
+25	Lateral Ventricle		191 191 191
+38	Lentiform Nucleus		191 191 191
+29	Lingual Gyrus			191 191 191
+31	Medial Frontal Gyrus		191 191 191
+28	Middle Frontal Gyrus		191 191 191
+32	Middle Occipital Gyrus		191 191 191
+5	Middle Temporal Gyrus		191 191 191
+14	Nodule				191 191 191
+17	Orbital Gyrus			191 191 191
+55	Paracentral Lobule		191 191 191
+20	Parahippocampa Gyrus		191 191 191
+47	Postcentral Gyrus		191 191 191
+44	Posterior Cingulate		191 191 191
+45	Precentral Gyrus		191 191 191
+48	Precuneus			191 191 191
+7	Pyramis				191 191 191
+13	Pyramis of Vermis		191 191 191
+23	Rectal Gyrus			191 191 191
+34	Subcallosal Gyrus		191 191 191
+11	Sub-Gyral			191 191 191
+24	Superior Frontal Gyrus		191 191 191
+49	Superior Occipital Gyrus	191 191 191
+54	Superior Parietal Lobule	191 191 191
+6	Superior Temporal Gyrus		191 191 191
+50	Supramarginal Gyrus		191 191 191
+41	Thalamus			191 191 191
+37	Third Ventricle			191 191 191
+46	Transverse Temporal Gyrus	191 191 191
+12	Tuber				191 191 191
+16	Tuber of Vermis			191 191 191
+4	Uncus				191 191 191
+8	Uvula				191 191 191
+9	Uvula of Vermis			191 191 191

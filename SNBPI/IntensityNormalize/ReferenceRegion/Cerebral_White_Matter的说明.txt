@@ -1,0 +1,1 @@
+该图像来自SPM12中自带的labels_Neuromorphometrics的44和45区域

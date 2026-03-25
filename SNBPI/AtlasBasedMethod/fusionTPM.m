@@ -2,17 +2,19 @@ function [newTPM,maxIndex] = fusionTPM(pwImg,psTPM)
     % Combine tTPM once to get a new TPM
     
     [~,TPMnum] = size(psTPM);
-    newTPM = psTPM;
     muList = estimatePara(pwImg,psTPM);
     [sTPM,I] = sortTPM(psTPM,muList); 
+
+    baselineLogL = computeLogLikelihood(pwImg,sTPM);
+
     maxIndex = zeros(2,1);
-    maxdiffL = computeDiffL(pwImg,sTPM,1,2)-100;
+    maxdiffL = -inf;
 
     for i=1:TPMnum-1
         for n = 1:5
             j = i+n;
             if j<=TPMnum
-                diffL = computeDiffL(pwImg,sTPM,i,j);
+                diffL = computeDiffL(pwImg,sTPM,i,j,baselineLogL);
                 if diffL>= maxdiffL 
                     maxdiffL = diffL;
                     maxIndex = [I(i),I(j)];
@@ -20,6 +22,7 @@ function [newTPM,maxIndex] = fusionTPM(pwImg,psTPM)
             end
         end
     end
+    newTPM = psTPM;
     newTPM(:,maxIndex(1)) = psTPM(:,maxIndex(1))+psTPM(:,maxIndex(2));
     newTPM(:,maxIndex(2)) = [];
 end
