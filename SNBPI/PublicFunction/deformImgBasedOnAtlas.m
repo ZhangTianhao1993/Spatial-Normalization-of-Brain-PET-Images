@@ -1,22 +1,4 @@
-% List of open inputs
-% Deformations: Image to base Id on - cfg_files
-% Deformations: Apply to - cfg_files
 function transformedImg = deformImgBasedOnAtlas(originalImgName,referImgName)
-    % matlabbatch{1}.spm.util.defs.comp{1}.id.space = '<UNDEFINED>';
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.fnames = '<UNDEFINED>';
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.savedir.savesrc = 1;
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.interp = 4;
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.mask = 1;
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.fwhm = [0 0 0];
-    % matlabbatch{1}.spm.util.defs.out{1}.pull.prefix = 'e';
-    % jobs = repmat(matlabbatch, 1, 1);
-    % inputs = cell(2, 1);
-    % 
-    % inputs{1, 1} = {referImgName}; % Deformations: Image to base Id on - cfg_files
-    % inputs{2, 1} = {originalImgName}; % Deformations: Apply to - cfg_files
-    % 
-    % spm('defaults', 'FMRI');
-    % spm_jobman('run', jobs, inputs{:});
     referv = spm_vol(referImgName);
     originv = spm_vol(originalImgName);
     A = spm_read_vols(referv);
@@ -44,7 +26,7 @@ function transformedImg = deformImgBasedOnAtlas(originalImgName,referImgName)
     Z_A_in_B = coords_A_in_B(:, 3);
     
     % 使用 griddedInterpolant 进行线性插值
-    F = griddedInterpolant(X_B, Y_B, Z_B, B); % 'spline' 是三次样条
+    F = griddedInterpolant(X_B, Y_B, Z_B, B); 
     
     % 插值计算
     transformedImg = F(X_A_in_B, Y_A_in_B, Z_A_in_B);

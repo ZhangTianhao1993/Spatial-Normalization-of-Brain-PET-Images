@@ -1,15 +1,17 @@
 function [meanImg,referenceMask] = ...
     IntensityNormalize(imageNames,referenceName,prefix,methodID,d)
 
-% 两种强度标准化方法，均值法和中值法
+% Two intensity standardization methods: mean method and median method.
 
 n = length(imageNames);
 
 imageName1 = imageNames{1};
-imageName1(end-1:end) = [];
+Vimg = spm_vol(imageName1);
+imageName1 = Vimg.fname;
 referenceName = referenceName{1};
-referenceName(end-1:end) = [];
-referenceMask = deformImgBasedOnOtherImg(referenceName,imageName1);
+Vref = spm_vol(referenceName);
+referenceName = Vref.fname;
+referenceMask = resampleImgToRef(referenceName,imageName1,'nearest');
 referenceMask(isnan(referenceMask)) = 0;
 referenceMask = referenceMask > 0.9;
 v1 = spm_vol(imageName1);

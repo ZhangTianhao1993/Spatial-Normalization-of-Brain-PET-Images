@@ -5,13 +5,9 @@ filenum = length(imageNames);
 
 %PETImages = spm_read_vols(spm_vol(char(string(imageNames))));
 if isscalar(atlasName)
-    imageName1 = imageNames{1};
-    imageName1(end-1:end) = [];
     atlasName = atlasName{1};
-    atlasName(end-1:end) = [];
-    %atlas = deformImgBasedOnOtherImg(atlasName,imageName1);
-    %atlas = spm_read_vols(spm_vol(atlasName));
-    
+    V = spm_vol(atlasName);
+    atlasName = V.fname;
     [ROIValue,uniAtlas] = computeROIValue(imageNames,atlasName,extraROIMethod,d);
     
     atlasnum = length(uniAtlas);
@@ -43,14 +39,11 @@ else
     ROIvalueCell = cell(filenum+1,atlasnum+1);
     for i=1:atlasnum
         atlasNamei = atlasName(i);
-        imageName1 = imageNames{1};
-        imageName1(end-1:end) = [];
         atlasNamei = atlasNamei{1};
-        atlasNamei(end-1:end) = [];
+        Vi = spm_vol(atlasNamei);
+        atlasNamei = Vi.fname;
         [~,name,~] = fileparts(atlasNamei);
         atlasshortname(i) = cellstr(name);
-        %atlas = deformImgBasedOnOtherImg(atlasNamei,imageName1);
-        %atlas = spm_read_vols(spm_vol(atlasNamei));
         ROIValue= computeROIValue(imageNames,atlasNamei,extraROIMethod);
         ROIvalueCell(2:end,i+1) = num2cell(ROIValue,1)';
         d.Value = i/atlasnum;
