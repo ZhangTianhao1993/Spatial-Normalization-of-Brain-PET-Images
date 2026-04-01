@@ -3,3 +3,4 @@ Neuromophometrics_Cerebellum是Neuromophometrics中Index等于[38,39,40,41,71,72
 Neuromophometrics_CerebellumGray则是小脑灰质，即Neuromophometrics_cerebellum去掉white matter，位置Indx为[38,39,71,72,73]
 Neuromophometrics_CerebellumBrainStem是Neuromophometrics_BrainStem加上Neuromophometrics_Cerebellum
 Neuromophometrics_CerebralWhiteMatter是44，45，即Cerebral White Matter
+Neuromophometrics_CerebellumWhite是小脑白质，即[40 41]的索引位置

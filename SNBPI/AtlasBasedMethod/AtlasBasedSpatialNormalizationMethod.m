@@ -15,10 +15,10 @@ n = length(PETnames);
 str = which('SNBPI');
 [mainfilepath,~,~] = fileparts(str);
 
-% 创建数据队列，用于 worker → 主线程通信(该功能用于显示进度条)
+% Create a data queue for worker main thread communication (this feature is used to display progress bars)
 q = parallel.pool.DataQueue;
 
-% 主线程监听队列，每收到一条消息就更新进度条
+% The main thread listens to the queue and updates the progress bar every time a message is received
 count = 0;
 afterEach(q, @(~) updateProgress());
 
