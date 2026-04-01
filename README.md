@@ -5,7 +5,7 @@ Citing Information:
 * Zhang Tianhao; Nie Binbin; Liu Hua; Shan Baoci; Unified Spatial Normalization of Brain PET Image Using Adaptive Probabilistic Brain Atlas; European Journal of Nuclear Medicine and Molecular Imaging, 2022
 * https://link.springer.com/article/10.1007/s00259-022-05752-6
 ## Requirements
-* matlab 2020a or later
+* matlab 2024b or later
 * SPM12 (https://www.fil.ion.ucl.ac.uk/spm/)
 ## Function
 * Three methods for spatial normalization of brain PET images
