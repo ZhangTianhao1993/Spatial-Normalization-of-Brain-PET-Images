@@ -1,7 +1,7 @@
 % List of open inputs
 % Deformations: Image to base Id on - cfg_files
 % Deformations: Apply to - cfg_files
-function B_transformed = deformImgBasedOnAtlas(originalImgName,referImgName)
+function transformedImg = deformImgBasedOnAtlas(originalImgName,referImgName)
     % matlabbatch{1}.spm.util.defs.comp{1}.id.space = '<UNDEFINED>';
     % matlabbatch{1}.spm.util.defs.out{1}.pull.fnames = '<UNDEFINED>';
     % matlabbatch{1}.spm.util.defs.out{1}.pull.savedir.savesrc = 1;
@@ -47,9 +47,9 @@ function B_transformed = deformImgBasedOnAtlas(originalImgName,referImgName)
     F = griddedInterpolant(X_B, Y_B, Z_B, B); % 'spline' 是三次样条
     
     % 插值计算
-    B_transformed = F(X_A_in_B, Y_A_in_B, Z_A_in_B);
+    transformedImg = F(X_A_in_B, Y_A_in_B, Z_A_in_B);
     
     % 将插值结果重塑为A的大小
-    B_transformed = reshape(B_transformed, [rows_A, cols_A, depths_A]);
+    transformedImg = reshape(transformedImg, [rows_A, cols_A, depths_A]);
     %B_transformed = permute(B_transformed,[])
 end

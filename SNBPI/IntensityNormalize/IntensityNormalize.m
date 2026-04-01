@@ -1,4 +1,5 @@
-function IntensityNormalize(imageNames,referenceName,prefix,methodID,d)
+function [meanImg,referenceMask] = ...
+    IntensityNormalize(imageNames,referenceName,prefix,methodID,d)
 
 % 两种强度标准化方法，均值法和中值法
 
@@ -11,7 +12,8 @@ referenceName(end-1:end) = [];
 referenceMask = deformImgBasedOnOtherImg(referenceName,imageName1);
 referenceMask(isnan(referenceMask)) = 0;
 referenceMask = referenceMask > 0.9;
-
+v1 = spm_vol(imageName1);
+meanImg = zeros(v1.dim);
 for i=1:n
     imagenamei = imageNames{i};
     imagevi = spm_vol(imagenamei);
@@ -29,6 +31,7 @@ for i=1:n
     imagevi.fname = fullfile(filepath,[prefix,name,ext]);
     imagevi.dt = [16,0];
     spm_write_vol(spm_create_vol(imagevi),imagei);
+    meanImg = meanImg + imagei/n;
     d.Value = i/n;
 end
     
