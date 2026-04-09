@@ -14,31 +14,42 @@ function TemplateBasedSpatialNormalizationMethod(Templatename,PETnames,...
 
 n = length(PETnames);
 %nrun = X; % enter the number of runs here
-for i=1:n
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.source = '<UNDEFINED>';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.wtsrc = '';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.resample = '<UNDEFINED>';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.template = '<UNDEFINED>';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.weight = '';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.smosrc = 8;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.smoref = 0;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.regtype = 'mni';
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.cutoff = 25;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.nits = 16;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.reg = 1;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.preserve = 0;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.bb = bbox;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.vox = voxelsize;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.interp = 4;
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.wrap = [0 0 0];
-    matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.prefix = normprefix;
-    jobs = matlabbatch;
-    inputs = cell(3, 1);
-    inputs{1, 1} = PETnames(i); % Old Normalise: Estimate & Write: Source Image - cfg_files
-    inputs{2, 1} = PETnames(i); % Old Normalise: Estimate & Write: Images to Write - cfg_files
-    inputs{3, 1} = Templatename; % Old Normalise: Estimate & Write: Template Image - cfg_files
-    spm('defaults', 'FMRI');
-    spm_jobman('run', jobs, inputs{:});
-    d.Value = i/n;
-end
+matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.source = '<UNDEFINED>';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.wtsrc = '';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.subj.resample = '<UNDEFINED>';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.template = '<UNDEFINED>';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.weight = '';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.smosrc = 8;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.smoref = 0;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.regtype = 'mni';
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.cutoff = 25;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.nits = 16;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.eoptions.reg = 1;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.preserve = 0;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.bb = bbox;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.vox = voxelsize;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.interp = 4;
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.wrap = [0 0 0];
+matlabbatch{1}.spm.tools.oldnorm.estwrite.roptions.prefix = normprefix;
+
+count = 0;
+q = parallel.pool.DataQueue;
+afterEach(q, @(~) updateProgress());
+d.Value = 0;
+    parfor i=1:n
+        
+        jobs = matlabbatch;
+        inputs = cell(3, 1);
+        inputs{1, 1} = PETnames(i); % Old Normalise: Estimate & Write: Source Image - cfg_files
+        inputs{2, 1} = PETnames(i); % Old Normalise: Estimate & Write: Images to Write - cfg_files
+        inputs{3, 1} = Templatename; % Old Normalise: Estimate & Write: Template Image - cfg_files
+        spm('defaults', 'FMRI');
+        spm_jobman('run', jobs, inputs{:});
+        send(q,i);
+    end
+    d.Value = 1;
+    function updateProgress()
+        count = count + 1;
+        d.Value = count / n;
+    end
 end

@@ -15,13 +15,10 @@ n = length(PETnames);
 str = which('SNBPI');
 [mainfilepath,~,~] = fileparts(str);
 
-% Create a data queue for worker main thread communication (this feature is used to display progress bars)
-q = parallel.pool.DataQueue;
 
-% The main thread listens to the queue and updates the progress bar every time a message is received
 count = 0;
+q = parallel.pool.DataQueue;
 afterEach(q, @(~) updateProgress());
-
 d.Value = 0;
 parfor i=1:n
     imageNamei = PETnames(i);

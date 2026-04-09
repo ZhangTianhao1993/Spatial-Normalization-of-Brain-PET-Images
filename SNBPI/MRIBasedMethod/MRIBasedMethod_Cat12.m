@@ -91,11 +91,9 @@ function MRIBasedMethod_Cat12(MRInames,PETnames,bbox,...
     matlabbatch{3}.spm.spatial.normalise.write.woptions.vox = voxelsize;
     matlabbatch{3}.spm.spatial.normalise.write.woptions.interp = 4;
     matlabbatch{3}.spm.spatial.normalise.write.woptions.prefix = normprefix;
-    % Create a data queue for worker main thread communication (this feature is used to display progress bars)
-    q = parallel.pool.DataQueue;
-
-    % The main thread listens to the queue and updates the progress bar every time a message is received
+    
     count = 0;
+    q = parallel.pool.DataQueue;
     afterEach(q, @(~) updateProgress());
     d.Value = 0;
     parfor i=1:n

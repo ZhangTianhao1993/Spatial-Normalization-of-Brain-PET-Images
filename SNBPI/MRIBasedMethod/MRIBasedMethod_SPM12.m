@@ -13,12 +13,10 @@ function MRIBasedMethod_SPM12(MRInames,PETnames,bbox,...
 % Author: Zhang Tianhao 2021/7/29
 % =========================================================================
 
-n = length(MRInames);
-str = which('SNBPI');
-[filepath,name,ext] = fileparts(str);
-for i=1:n
-%nrun = X; % enter the number of runs here
-    matlabbatch{1}.spm.spatial.coreg.estwrite.ref = '<UNDEFINED>';
+    n = length(MRInames);
+    str = which('SNBPI');
+    [filepath,name,ext] = fileparts(str);
+     matlabbatch{1}.spm.spatial.coreg.estwrite.ref = '<UNDEFINED>';
     matlabbatch{1}.spm.spatial.coreg.estwrite.source = '<UNDEFINED>';
     matlabbatch{1}.spm.spatial.coreg.estwrite.other = {''};
     matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
@@ -70,15 +68,24 @@ for i=1:n
     matlabbatch{3}.spm.spatial.normalise.write.woptions.vox = voxelsize;
     matlabbatch{3}.spm.spatial.normalise.write.woptions.interp = 4;
     matlabbatch{3}.spm.spatial.normalise.write.woptions.prefix = normprefix;
-
-    jobs = matlabbatch;
-    inputs = cell(3, 1);
-    inputs{1, 1} = MRInames(i); % Coregister: Estimate & Reslice: Reference Image - cfg_files
-    inputs{2, 1} =PETnames(i); % Coregister: Estimate & Reslice: Source Image - cfg_files
-    inputs{3, 1} = MRInames(i); % Segment: Volumes - cfg_files
-    spm('defaults', 'FMRI');
-    spm_jobman('run', jobs, inputs{:});
-    d.Value = i/n;
-end
+    count = 0;
+    q = parallel.pool.DataQueue;
+    afterEach(q, @(~) updateProgress());
+    d.Value = 0;
+    parfor i=1:n
+        jobs = matlabbatch;
+        inputs = cell(3, 1);
+        inputs{1, 1} = MRInames(i); % Coregister: Estimate & Reslice: Reference Image - cfg_files
+        inputs{2, 1} =PETnames(i); % Coregister: Estimate & Reslice: Source Image - cfg_files
+        inputs{3, 1} = MRInames(i); % Segment: Volumes - cfg_files
+        spm('defaults', 'FMRI');
+        spm_jobman('run', jobs, inputs{:});
+        send(q,i);
+    end
+    d.Value = 1;
+    function updateProgress()
+        count = count + 1;
+        d.Value = count / n;
+    end
 end
 
