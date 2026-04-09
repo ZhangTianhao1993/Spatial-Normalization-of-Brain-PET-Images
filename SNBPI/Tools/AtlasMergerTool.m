@@ -1,52 +1,52 @@
 function AtlasMergerTool()
-% AtlasMergerTool - 交互式脑区Atlas合并工具
+% AtlasMergerTool - Interactive brain region Atlas merging tool
 %
-% 功能:
-%   1. 加载 NIfTI 格式的 Atlas 图像及对应的 _Labels.mat 标签文件
-%   2. 以四列交互界面显示图像、ROI列表、合并操作和合并结果
-%   3. 勾选ROI后在图像上高亮对应脑区
-%   4. 将选定的多个ROI合并为新ROI，输出新Atlas文件
+% Features:
+%   1. Load NIfTI format Atlas images and corresponding _Labels.mat label files
+%   2. Display image, ROI list, merge operations and merge results in a 4-column interactive UI
+%   3. Highlight corresponding brain regions on the image when an ROI is checked
+%   4. Merge selected ROIs into a new ROI and output a new Atlas file
 %
-% 依赖:
-%   SPM12 (需已添加至 MATLAB 路径)
+% Dependencies:
+%   SPM12 (must be added to the MATLAB path)
 %
-% 使用方法:
+% Usage:
 %   AtlasMergerTool()
 
 %% ================================================================
-%% 状态变量 (所有嵌套函数共享)
+%% State variables (shared across all nested functions)
 %% ================================================================
 S.atlasFile    = '';
-S.atlasVol     = [];       % SPM vol 结构体
-S.atlasData    = [];       % 3D double 数组
-S.Labels       = {};       % n×2 cell: {ROI名称(str), Index(double)}
+S.atlasVol     = [];       % SPM vol struct
+S.atlasData    = [];       % 3D double array
+S.Labels       = {};       % n x 2 cell: {ROI name (str), Index (double)}
 S.nROI         = 0;
-S.selected     = logical([]);  % n×1 logical，是否被勾选
-S.disabled     = logical([]);  % n×1 logical，合并后禁用
-S.mergedList   = {};       % 已合并ROI的cell数组（struct）
+S.selected     = logical([]);  % n x 1 logical, whether checked
+S.disabled     = logical([]);  % n x 1 logical, disabled after merging
+S.mergedList   = {};       % cell array of merged ROI structs
 S.orientation  = 'axial';
 S.currentSlice = 1;
 S.nSlices      = 1;
 
 %% ================================================================
-%% 界面布局常量
+%% UI layout constants
 %% ================================================================
-FW   = 1600;   % 窗口宽度
-FH   = 900;    % 窗口高度
-colW = 378;    % 每列宽度
-gap  = 8;      % 列间距
-lm   = 5;      % 左边距
-panH = FH - 92;  % 面板高度
-panY = 45;        % 面板底部Y坐标
-cX   = @(c) lm + (c-1)*(colW+gap);  % 第c列的X坐标
+FW   = 1600;   % Window width
+FH   = 900;    % Window height
+colW = 378;    % Column width
+gap  = 8;      % Gap between columns
+lm   = 5;      % Left margin
+panH = FH - 92;  % Panel height
+panY = 45;        % Panel bottom Y coordinate
+cX   = @(c) lm + (c-1)*(colW+gap);  % X coordinate of column c
 
 %% ================================================================
-%% 创建主窗口
+%% Create main window
 %% ================================================================
-% 注意：CloseRequestFcn 须在 fig 赋值后再设置，
-% 否则匿名函数捕获的是未赋值的 fig（MATLAB 经典陷阱）
+% Note: CloseRequestFcn must be set after fig is assigned,
+% otherwise the anonymous function captures an unassigned fig (classic MATLAB trap)
 fig = figure( ...
-    'Name',        'Atlas ROI 合并工具 | AtlasMergerTool', ...
+    'Name',        'Atlas ROI Merger Tool | AtlasMergerTool', ...
     'NumberTitle', 'off', ...
     'Position',    [20 30 FW FH], ...
     'MenuBar',     'none', ...
@@ -56,11 +56,11 @@ fig = figure( ...
 set(fig, 'CloseRequestFcn', @cb_close);
 
 %% ================================================================
-%% 顶部工具栏
+%% Top toolbar
 %% ================================================================
-% 选择文件按钮
+% Select file button
 uicontrol(fig, 'Style', 'pushbutton', ...
-    'String',          '📂  选择 Atlas (.nii)', ...
+    'String',          'Select Atlas (.nii)', ...
     'Position',        [8 FH-42 175 33], ...
     'FontSize',        10, 'FontWeight', 'bold', ...
     'BackgroundColor', [0.20 0.55 0.95], ...
@@ -68,7 +68,7 @@ uicontrol(fig, 'Style', 'pushbutton', ...
     'Callback',        @cb_selectAtlas);
 
 hFileLbl = uicontrol(fig, 'Style', 'text', ...
-    'String',           '← 请先选择 Atlas NIfTI 文件 (.nii)', ...
+    'String',           'Please select an Atlas NIfTI file (.nii) first', ...
     'Position',         [192 FH-40 FW-400 26], ...
     'HorizontalAlignment', 'left', ...
     'FontSize',         9, ...
@@ -76,19 +76,19 @@ hFileLbl = uicontrol(fig, 'Style', 'text', ...
     'ForegroundColor',  [0.65 0.75 0.85]);
 
 %% ================================================================
-%% 创建四个面板
+%% Create four panels
 %% ================================================================
 panelColor = [0.18 0.20 0.26];
-titleColor = [0.22 0.24 0.32];
+titleColor = [0.22 0.24 0.32]; %#ok<NASGU>
 
-p1 = makepanel(' ① 原始 Atlas 图像',      cX(1), panY, colW, panH);
-p2 = makepanel(' ② ROI 列表（勾选高亮）', cX(2), panY, colW, panH);
-p3 = makepanel(' ③ 合并操作',             cX(3), panY, colW, panH);
-p4 = makepanel(' ④ 已合并 ROI 列表',      cX(4), panY, colW, panH);
+p1 = makepanel(' (1) Original Atlas Image',          cX(1), panY, colW, panH);
+p2 = makepanel(' (2) ROI List (check to highlight)', cX(2), panY, colW, panH);
+p3 = makepanel(' (3) Merge Operations',              cX(3), panY, colW, panH);
+p4 = makepanel(' (4) Merged ROI List',               cX(4), panY, colW, panH);
 
     function p = makepanel(title_, x, y, w, h)
         p = uipanel(fig, ...
-            'Units',           'pixels', ...     % 必须指定，默认是 normalized！
+            'Units',           'pixels', ...     % Must specify, default is normalized!
             'Title',           title_, ...
             'Position',        [x y w h], ...
             'FontSize',        10, 'FontWeight', 'bold', ...
@@ -99,15 +99,15 @@ p4 = makepanel(' ④ 已合并 ROI 列表',      cX(4), panY, colW, panH);
     end
 
 %% ================================================================
-%% 面板1: 图像显示
+%% Panel 1: Image display
 %% ================================================================
 hAx = axes('Parent', p1, 'Units', 'pixels', ...
     'Position', [8 58 colW-16 panH-95]);
 set(hAx, 'Color', 'k', 'XColor', 'none', 'YColor', 'none');
 axis(hAx, 'image', 'off');
 
-% 切片滑块
-uicontrol(p1, 'Style', 'text', 'String', '切片:', ...
+% Slice slider
+uicontrol(p1, 'Style', 'text', 'String', 'Slice:', ...
     'Position', [8 35 38 18], 'FontSize', 9, ...
     'BackgroundColor', panelColor, 'ForegroundColor', [0.75 0.85 0.95]);
 hSlider = uicontrol(p1, 'Style', 'slider', ...
@@ -119,16 +119,16 @@ hSliceLbl = uicontrol(p1, 'Style', 'text', 'String', '-/-', ...
     'BackgroundColor', [0.10 0.12 0.16], 'ForegroundColor', [0.9 0.95 1.0], ...
     'HorizontalAlignment', 'center');
 
-% 方向选择
+% Orientation selection
 hOrBG = uibuttongroup(p1, ...
-    'Units',               'pixels', ...    % 必须指定，默认是 normalized！
+    'Units',               'pixels', ...    % Must specify, default is normalized!
     'Position',            [8 10 colW-16 22], ...
     'BorderType',          'none', ...
     'BackgroundColor',     panelColor, ...
     'SelectionChangedFcn', @cb_orientation);
 hOrAx = makeRadio(hOrBG, 'Axial',    0,   1);
-hOrCo = makeRadio(hOrBG, 'Coronal',  80,  0);
-hOrSa = makeRadio(hOrBG, 'Sagittal', 165, 0);
+hOrCo = makeRadio(hOrBG, 'Coronal',  80,  0); %#ok<NASGU>
+hOrSa = makeRadio(hOrBG, 'Sagittal', 165, 0); %#ok<NASGU>
 
     function rb = makeRadio(parent, str, x, val)
         rb = uicontrol(parent, 'Style', 'radiobutton', 'String', str, ...
@@ -137,11 +137,11 @@ hOrSa = makeRadio(hOrBG, 'Sagittal', 165, 0);
     end
 
 %% ================================================================
-%% 面板2: ROI 列表（uitable）
+%% Panel 2: ROI list (uitable)
 %% ================================================================
 hROITable = uitable(p2, ...
     'Position',    [5 5 colW-10 panH-32], ...
-    'ColumnName',  {'ROI 名称', 'Index', '选择', '状态'}, ...
+    'ColumnName',  {'ROI Name', 'Index', 'Select', 'Status'}, ...
     'ColumnWidth', {152, 52, 45, 88}, ...
     'ColumnEditable', [false false true false], ...
     'ColumnFormat', {'char', 'numeric', 'logical', 'char'}, ...
@@ -151,30 +151,30 @@ hROITable = uitable(p2, ...
     'CellEditCallback', @cb_roiSelect);
 
 %% ================================================================
-%% 面板3: 合并操作
+%% Panel 3: Merge operations
 %% ================================================================
-innerH = panH - 28;  % 面板内可用高度（减去标题栏）
+innerH = panH - 28;  % Available inner height (minus title bar)
 
-% 已选ROI预览标签
-uicontrol(p3, 'Style', 'text', 'String', '已勾选的 ROI（待合并）:', ...
-    'Position', [8 innerH-28 220 20], 'FontSize', 9, ...
+% Selected ROI preview label
+uicontrol(p3, 'Style', 'text', 'String', 'Selected ROIs (to be merged):', ...
+    'Position', [8 innerH-28 260 20], 'FontSize', 9, ...
     'HorizontalAlignment', 'left', ...
     'BackgroundColor', panelColor, 'ForegroundColor', [0.65 0.80 0.95]);
 
-% 已选ROI预览列表框
+% Selected ROI preview listbox
 hPreview = uicontrol(p3, 'Style', 'listbox', ...
     'Position', [8 innerH-148 colW-16 118], ...
     'String', {}, 'FontSize', 9, 'Enable', 'inactive', ...
     'BackgroundColor', [0.10 0.12 0.18], ...
     'ForegroundColor', [0.85 0.95 0.75]);
 
-% 分隔线（用文本模拟）
-uicontrol(p3, 'Style', 'text', 'String', repmat('─', 1, 48), ...
+% Separator line (simulated with text)
+uicontrol(p3, 'Style', 'text', 'String', repmat('-', 1, 60), ...
     'Position', [8 innerH-158 colW-16 12], 'FontSize', 7, ...
     'BackgroundColor', panelColor, 'ForegroundColor', [0.35 0.40 0.55]);
 
-% 合并后名称输入
-uicontrol(p3, 'Style', 'text', 'String', '合并后 ROI 名称:', ...
+% Merged name input
+uicontrol(p3, 'Style', 'text', 'String', 'Merged ROI Name:', ...
     'Position', [8 innerH-180 160 18], 'FontSize', 9, ...
     'HorizontalAlignment', 'left', ...
     'BackgroundColor', panelColor, 'ForegroundColor', [0.75 0.85 0.95]);
@@ -183,9 +183,9 @@ hMergeName = uicontrol(p3, 'Style', 'edit', ...
     'BackgroundColor', [0.10 0.12 0.18], 'ForegroundColor', [0.95 0.98 1.0], ...
     'HorizontalAlignment', 'left');
 
-% 合并后Index输入
-uicontrol(p3, 'Style', 'text', 'String', '合并后 ROI Index（整数）:', ...
-    'Position', [8 innerH-232 210 18], 'FontSize', 9, ...
+% Merged Index input
+uicontrol(p3, 'Style', 'text', 'String', 'Merged ROI Index (integer):', ...
+    'Position', [8 innerH-232 230 18], 'FontSize', 9, ...
     'HorizontalAlignment', 'left', ...
     'BackgroundColor', panelColor, 'ForegroundColor', [0.75 0.85 0.95]);
 hMergeIdx = uicontrol(p3, 'Style', 'edit', ...
@@ -193,103 +193,111 @@ hMergeIdx = uicontrol(p3, 'Style', 'edit', ...
     'BackgroundColor', [0.10 0.12 0.18], 'ForegroundColor', [0.95 0.98 1.0], ...
     'HorizontalAlignment', 'left');
 
-% Merge 按钮
+% Merge button
 hMergeBtn = uicontrol(p3, 'Style', 'pushbutton', ...
-    'String',          '✔  Merge（合并选中 ROI）', ...
+    'String',          'Merge (combine selected ROIs)', ...
     'Position',        [8 innerH-308 colW-16 42], ...
     'FontSize',        12, 'FontWeight', 'bold', ...
     'BackgroundColor', [0.10 0.60 0.30], ...
     'ForegroundColor', 'white', ...
-    'Callback',        @cb_merge);
+    'Callback',        @cb_merge); %#ok<NASGU>
 
 %% ================================================================
-%% 面板4: 已合并ROI列表
+%% Panel 4: Merged ROI list
 %% ================================================================
 hMergedTable = uitable(p4, ...
     'Position',    [5 5 colW-10 panH-32], ...
-    'ColumnName',  {'合并 ROI 名称', 'Index', '包含原始 ROI'}, ...
-    'ColumnWidth', {115, 48, 182}, ...
+    'ColumnName',  {'Merged ROI Name', 'Index', 'Original ROIs'}, ...
+    'ColumnWidth', {130, 48, 167}, ...
     'ColumnEditable', [false false false], ...
     'RowName',     [], ...
     'Data',        {}, ...
     'FontSize',    9);
 
 %% ================================================================
-%% 底部按钮栏
+%% Bottom button bar
 %% ================================================================
-% 重置按钮
-uicontrol(fig, 'Style', 'pushbutton', 'String', '↺  重置', ...
+% Reset button
+uicontrol(fig, 'Style', 'pushbutton', 'String', 'Reset', ...
     'Position', [8 8 110 32], 'FontSize', 11, ...
     'BackgroundColor', [0.80 0.35 0.15], 'ForegroundColor', 'white', ...
     'Callback', @cb_reset);
 
-% 生成新Atlas按钮
-uicontrol(fig, 'Style', 'pushbutton', 'String', '💾  生成新 Atlas', ...
+% Generate new Atlas button
+uicontrol(fig, 'Style', 'pushbutton', 'String', 'Generate New Atlas', ...
     'Position', [128 8 162 32], 'FontSize', 11, 'FontWeight', 'bold', ...
     'BackgroundColor', [0.45 0.20 0.80], 'ForegroundColor', 'white', ...
     'Callback', @cb_generateAtlas);
 
-% 状态栏
+% Status bar
 hStatus = uicontrol(fig, 'Style', 'text', ...
-    'String', '就绪 | 请先加载 Atlas 文件', ...
+    'String', 'Ready | Please load an Atlas file first', ...
     'Position', [300 8 FW-315 28], ...
     'HorizontalAlignment', 'left', 'FontSize', 9, ...
     'BackgroundColor', [0.15 0.17 0.22], ...
     'ForegroundColor', [0.45 0.75 0.45]);
 
 %% ================================================================
-%% 嵌套回调函数
+%% Nested callback functions
 %% ================================================================
 
-%--- (1) 选择Atlas文件 -------------------------------------------
+%--- (1) Select Atlas file ---------------------------------------
     function cb_selectAtlas(~, ~)
-        [fname, fpath] = uigetfile('*.nii', '选择 Atlas NIfTI 文件');
+        % Resolve the default directory:
+        % locate the SNBPI main program directory and navigate to
+        % fullfile(str, 'ExtractROIValues', 'Atlas')
+        defaultDir = getAtlasDefaultDir();
+
+        [fname, fpath] = uigetfile( ...
+            fullfile(defaultDir, '*.nii'), ...
+            'Select Atlas NIfTI file');
         if isequal(fname, 0), return; end
 
-        setStatus('⏳ 正在加载文件，请稍候...');
+        setStatus('Loading file, please wait...');
 
         fullPath = fullfile(fpath, fname);
 
-        % 用SPM12加载NIfTI
+        % Load NIfTI with SPM12
         try
             vol  = spm_vol(fullPath);
-            % 关键修复：round() 消除 float32→float64 的浮点误差
-            % Atlas 的 Index 本质上都是整数，存为 float32 时会产生微小误差
-            % 例如 1.0 可能变成 1.0000001192，直接比较会失败
+            % Key fix: round() to eliminate float32->float64 floating-point errors.
+            % Atlas indices are essentially integers, but stored as float32 they
+            % may pick up tiny errors (e.g. 1.0 becoming 1.0000001192), which
+            % breaks direct equality comparisons.
             data = round(double(spm_read_vols(vol(1))));
         catch e
-            errordlg(['NIfTI 加载失败：' e.message], '错误');
-            setStatus('❌ 加载失败');
+            errordlg(['Failed to load NIfTI: ' e.message], 'Error');
+            setStatus('Load failed');
             return;
         end
 
-        % 查找并加载 _Labels.mat
+        % Find and load _Labels.mat
         [~, baseName] = fileparts(fname);
         labFile = fullfile(fpath, [baseName '_Labels.mat']);
         if ~exist(labFile, 'file')
-            errordlg(sprintf('找不到对应的 Labels 文件：\n%s', labFile), '错误');
-            setStatus('❌ 找不到 Labels 文件');
+            errordlg(sprintf('Corresponding Labels file not found:\n%s', labFile), 'Error');
+            setStatus('Labels file not found');
             return;
         end
         try
             tmp = load(labFile, 'Labels');
             if ~isfield(tmp, 'Labels')
-                error('mat文件中没有变量 "Labels"');
+                error('Variable "Labels" not found in mat file');
             end
             Labels_ = tmp.Labels;
-            % 统一将第1列（名称）转为 char，兼容 string 和 char 两种存储格式
+            % Convert column 1 (name) to char, to support both string and char storage
             for ii = 1:size(Labels_, 1)
                 if isstring(Labels_{ii, 1})
                     Labels_{ii, 1} = char(Labels_{ii, 1});
                 end
             end
         catch e
-            errordlg(['Labels 文件加载失败：' e.message], '错误');
-            setStatus('❌ Labels 加载失败');
+            errordlg(['Failed to load Labels file: ' e.message], 'Error');
+            setStatus('Labels load failed');
             return;
         end
 
-        % 更新状态变量
+        % Update state variables
         S.atlasFile    = fullPath;
         S.atlasVol     = vol(1);
         S.atlasData    = data;
@@ -302,10 +310,10 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         S.nSlices      = size(data, 3);
         S.currentSlice = max(1, round(S.nSlices / 2));
 
-        % 重置方向选择为 Axial
+        % Reset orientation selection to Axial
         set(hOrBG, 'SelectedObject', hOrAx);
 
-        % 更新UI
+        % Update UI
         set(hFileLbl, 'String', fullPath);
         refreshSlider();
         refreshROITable();
@@ -316,36 +324,92 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
 
         refreshImage();
 
-        % 验证 Labels 中的 Index 是否能在图像中找到（帮助排查数据问题）
+        % Validate that Indices in Labels can be found in the image (for diagnostics)
         allLabIdx  = cellfun(@(x) round(x), S.Labels(:,2));
         uniqueVox  = unique(data(:));
-        uniqueVox  = uniqueVox(uniqueVox ~= 0);   % 去掉背景
+        uniqueVox  = uniqueVox(uniqueVox ~= 0);   % Remove background
         nFound     = sum(ismember(allLabIdx, uniqueVox));
         if nFound == 0
-            warnMsg = sprintf(['⚠  警告：Labels 文件中的 %d 个 ROI Index 在图像中均未找到对应体素！\n' ...
-                '请检查 Labels 的第2列 Index 是否与图像中的实际值匹配。\n' ...
-                '图像中实际存在的非零值范围：[%g, %g]，Labels Index 范围：[%g, %g]'], ...
+            warnMsg = sprintf(['Warning: none of the %d ROI indices in the Labels file were found in the image!\n' ...
+                'Please check whether column 2 (Index) of Labels matches the actual values in the image.\n' ...
+                'Non-zero value range in image: [%g, %g], Labels Index range: [%g, %g]'], ...
                 S.nROI, min(uniqueVox), max(uniqueVox), min(allLabIdx), max(allLabIdx));
-            warndlg(warnMsg, '数据不匹配警告');
-            setStatus('⚠  已加载但 Labels Index 与图像值不匹配，请检查数据');
+            warndlg(warnMsg, 'Data mismatch warning');
+            setStatus('Loaded, but Labels Index does not match image values. Please check the data.');
         else
-            setStatus(sprintf('✅ 已加载：%s  |  共 %d 个 ROI（%d 个在当前图像中有体素）|  尺寸：%d×%d×%d', ...
+            setStatus(sprintf('Loaded: %s  |  %d ROIs (%d present in image)  |  Size: %dx%dx%d', ...
                 fname, S.nROI, nFound, size(data,1), size(data,2), size(data,3)));
         end
     end
 
-%--- (2) ROI表格勾选回调 -----------------------------------------
+%--- (1a) Determine default directory for Atlas file picker ------
+    function d = getAtlasDefaultDir()
+        % Try to locate the SNBPI main program directory and then
+        % navigate to its ExtractROIValues/Atlas subfolder.
+        d = pwd;  % Fallback: current directory
+        str = '';
+
+        % Strategy 1: use which() to locate the SNBPI main program file
+        candidates = {'SNBPI', 'SNBPI.m'};
+        for k = 1:numel(candidates)
+            p = which(candidates{k});
+            if ~isempty(p)
+                str = fileparts(p);
+                break;
+            end
+        end
+
+        % Strategy 2: search the MATLAB path for a folder named "SNBPI"
+        if isempty(str)
+            pathDirs = strsplit(path, pathsep);
+            for k = 1:numel(pathDirs)
+                [~, folderName] = fileparts(pathDirs{k});
+                if strcmpi(folderName, 'SNBPI')
+                    str = pathDirs{k};
+                    break;
+                end
+            end
+        end
+
+        % Strategy 3: walk up from the current file's location looking for SNBPI
+        if isempty(str)
+            here = fileparts(mfilename('fullpath'));
+            cur  = here;
+            for k = 1:6  % climb at most 6 levels
+                [~, folderName] = fileparts(cur);
+                if strcmpi(folderName, 'SNBPI')
+                    str = cur;
+                    break;
+                end
+                parent = fileparts(cur);
+                if isempty(parent) || strcmp(parent, cur), break; end
+                cur = parent;
+            end
+        end
+
+        % If SNBPI directory was found, build the target Atlas folder path
+        if ~isempty(str)
+            target = fullfile(str, 'ExtractROIValues', 'Atlas');
+            if exist(target, 'dir')
+                d = target;
+            elseif exist(str, 'dir')
+                d = str;
+            end
+        end
+    end
+
+%--- (2) ROI table check callback --------------------------------
     function cb_roiSelect(~, evt)
         r = evt.Indices(1);
         c = evt.Indices(2);
-        if c ~= 3, return; end  % 只处理"选择"列
+        if c ~= 3, return; end  % Only handle the "Select" column
 
-        % 如果该ROI已被禁用，撤销勾选
+        % If this ROI has been disabled, undo the check
         if S.disabled(r)
             d = get(hROITable, 'Data');
             d{r, 3} = false;
             set(hROITable, 'Data', d);
-            setStatus(sprintf('⚠  ROI "%s" 已参与合并，不可再选。请先按"生成新Atlas"或"重置"', S.Labels{r,1}));
+            setStatus(sprintf('ROI "%s" has already been merged and cannot be reselected. Please click "Generate New Atlas" or "Reset" first.', S.Labels{r,1}));
             return;
         end
 
@@ -354,43 +418,43 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         refreshImage();
     end
 
-%--- (3) Merge 按钮 -----------------------------------------------
+%--- (3) Merge button --------------------------------------------
     function cb_merge(~, ~)
         if isempty(S.atlasData)
-            warndlg('请先加载 Atlas 文件', '提示'); return;
+            warndlg('Please load an Atlas file first', 'Notice'); return;
         end
 
         selIdx = find(S.selected & ~S.disabled);
         if isempty(selIdx)
-            warndlg('请先在 ROI 列表中勾选至少一个 ROI', '提示'); return;
+            warndlg('Please check at least one ROI in the ROI list', 'Notice'); return;
         end
 
         mName = strtrim(get(hMergeName, 'String'));
         mIdxStr = strtrim(get(hMergeIdx, 'String'));
         mIdx  = str2double(mIdxStr);
 
-        % 输入验证
+        % Input validation
         if isempty(mName)
-            warndlg('请输入合并后 ROI 的名称', '提示'); return;
+            warndlg('Please enter a name for the merged ROI', 'Notice'); return;
         end
         if isnan(mIdx) || ~isfinite(mIdx)
-            warndlg('请输入有效的 Index（整数）', '提示'); return;
+            warndlg('Please enter a valid Index (integer)', 'Notice'); return;
         end
         mIdx = round(mIdx);
 
-        % 检查名称和Index的唯一性
+        % Check uniqueness of name and Index
         for k = 1:numel(S.mergedList)
             if strcmp(S.mergedList{k}.name, mName)
-                warndlg(sprintf('ROI 名称 "%s" 已存在，请使用不同名称', mName), '重复名称');
+                warndlg(sprintf('ROI name "%s" already exists, please use a different name', mName), 'Duplicate name');
                 return;
             end
             if S.mergedList{k}.newIndex == mIdx
-                warndlg(sprintf('ROI Index %d 已存在，请使用不同 Index', mIdx), '重复 Index');
+                warndlg(sprintf('ROI Index %d already exists, please use a different Index', mIdx), 'Duplicate Index');
                 return;
             end
         end
 
-        % 构建合并条目
+        % Build merge entry
         m.name      = mName;
         m.newIndex  = mIdx;
         m.roiRows   = selIdx;
@@ -399,11 +463,11 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
 
         S.mergedList{end+1} = m;
 
-        % 将已合并的ROI设为禁用
+        % Disable the merged ROIs
         S.disabled(selIdx) = true;
         S.selected(selIdx) = false;
 
-        % 刷新界面
+        % Refresh UI
         refreshROITable();
         refreshMergedTable();
         refreshPreview();
@@ -412,47 +476,47 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         set(hMergeName, 'String', '');
         set(hMergeIdx,  'String', '');
 
-        setStatus(sprintf('✅ 已合并为 "%s" (Index=%d)，包含 %d 个原始 ROI', ...
+        setStatus(sprintf('Merged into "%s" (Index=%d), containing %d original ROIs', ...
             mName, mIdx, numel(selIdx)));
     end
 
-%--- (4) 生成新Atlas按钮 -----------------------------------------
+%--- (4) Generate new Atlas button -------------------------------
     function cb_generateAtlas(~, ~)
         if isempty(S.atlasData)
-            warndlg('请先加载 Atlas 文件', '提示'); return;
+            warndlg('Please load an Atlas file first', 'Notice'); return;
         end
         if isempty(S.mergedList)
-            warndlg('目前没有已合并的 ROI，请先进行合并操作', '提示'); return;
+            warndlg('There are no merged ROIs yet. Please perform a merge first.', 'Notice'); return;
         end
 
-        % 输入新文件名
-        ans_ = inputdlg('请输入新 Atlas 文件名（不含扩展名）:', '生成新 Atlas', 1, {'merged_atlas'});
+        % Enter new file name
+        ans_ = inputdlg('Enter the new Atlas file name (without extension):', 'Generate New Atlas', 1, {'merged_atlas'});
         if isempty(ans_), return; end
         newBase = strtrim(ans_{1});
         if isempty(newBase)
-            warndlg('文件名不能为空', '提示'); return;
+            warndlg('File name cannot be empty', 'Notice'); return;
         end
-        % 去掉用户可能输入的扩展名
+        % Strip any extension the user may have entered
         newBase = strrep(newBase, '.nii', '');
 
-        % 选择保存目录
-        saveDir = uigetdir(fileparts(S.atlasFile), '选择保存目录');
+        % Select save directory
+        saveDir = uigetdir(fileparts(S.atlasFile), 'Select save directory');
         if isequal(saveDir, 0), return; end
 
         newNii = fullfile(saveDir, [newBase '.nii']);
         newMat = fullfile(saveDir, [newBase '_Labels.mat']);
 
-        % 确认覆盖
+        % Confirm overwrite
         if exist(newNii, 'file') || exist(newMat, 'file')
-            ans2 = questdlg(sprintf('文件已存在，是否覆盖？\n%s', newNii), ...
-                '确认覆盖', '覆盖', '取消', '取消');
-            if ~strcmp(ans2, '覆盖'), return; end
+            ans2 = questdlg(sprintf('File already exists. Overwrite?\n%s', newNii), ...
+                'Confirm overwrite', 'Overwrite', 'Cancel', 'Cancel');
+            if ~strcmp(ans2, 'Overwrite'), return; end
         end
 
-        setStatus('⏳ 正在生成新 Atlas...');
+        setStatus('Generating new Atlas...');
         drawnow;
 
-        % 构建新的atlas数据（背景为0）
+        % Build new atlas data (background is 0)
         newData = zeros(size(S.atlasData));
         nMerged = numel(S.mergedList);
         Labels  = cell(nMerged, 2);  %#ok<NASGU>
@@ -461,18 +525,18 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             m = S.mergedList{k};
             Labels{k, 1} = m.name;
             Labels{k, 2} = m.newIndex;
-            % 将所有原始ROI的voxel赋新Index
+            % Assign the new Index to all voxels belonging to the original ROIs
             for j = 1:numel(m.origIdxs)
                 newData(S.atlasData == m.origIdxs(j)) = m.newIndex;
             end
         end
 
-        % 用SPM12写入NIfTI
+        % Write NIfTI via SPM12
         try
             newVol         = S.atlasVol;
             newVol.fname   = newNii;
             newVol.descrip = sprintf('Merged Atlas - generated by AtlasMergerTool (%s)', datestr(now));
-            % 根据最大Index选择数据类型
+            % Choose data type based on maximum Index
             maxIdx = max(cellfun(@(x) x.newIndex, S.mergedList));
             if maxIdx <= 32767
                 newVol.dt = [spm_type('int16') spm_platform('bigend')];
@@ -481,33 +545,33 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             end
             spm_write_vol(newVol, newData);
         catch e
-            errordlg(['写入 NIfTI 失败：' e.message], '错误');
-            setStatus('❌ 生成失败');
+            errordlg(['Failed to write NIfTI: ' e.message], 'Error');
+            setStatus('Generation failed');
             return;
         end
 
-        % 保存Labels mat文件
+        % Save Labels mat file
         save(newMat, 'Labels');
 
-        % ---- 保存合并信息文件（txt + mat 双格式）--------------------
+        % ---- Save merge info files (txt + mat) ---------------------
         infoTxt = fullfile(saveDir, [newBase '_MergeInfo.txt']);
         infoMat = fullfile(saveDir, [newBase '_MergeInfo.mat']);
         try
             saveMergeInfo(infoTxt, infoMat, newBase, nMerged);
         catch e
-            warndlg(['合并信息文件保存失败：' e.message], '警告');
+            warndlg(['Failed to save merge info files: ' e.message], 'Warning');
         end
 
-        msgbox(sprintf(['✅ 新 Atlas 已成功保存！\n\n', ...
-            '图像文件：\n  %s\n\n', ...
-            '标签文件：\n  %s\n\n', ...
-            '合并信息（文本）：\n  %s\n\n', ...
-            '合并信息（MAT）：\n  %s\n\n', ...
-            '共 %d 个合并后的 ROI'], ...
+        msgbox(sprintf(['New Atlas saved successfully!\n\n', ...
+            'Image file:\n  %s\n\n', ...
+            'Labels file:\n  %s\n\n', ...
+            'Merge info (text):\n  %s\n\n', ...
+            'Merge info (MAT):\n  %s\n\n', ...
+            'Total merged ROIs: %d'], ...
             newNii, newMat, infoTxt, infoMat, nMerged), ...
-            '生成成功', 'help');
+            'Generation successful', 'help');
 
-        % 生成后恢复所有ROI为可选状态（需求3）
+        % After generation, restore all ROIs to selectable state (requirement 3)
         S.disabled(:) = false;
         S.selected(:) = false;
         S.mergedList  = {};
@@ -517,10 +581,10 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         refreshPreview();
         refreshImage();
 
-        setStatus(sprintf('✅ 新 Atlas 已保存至：%s  |  ROI 列表已重置为可选状态', newNii));
+        setStatus(sprintf('New Atlas saved to: %s  |  ROI list has been reset to selectable', newNii));
     end
 
-%--- (5) 滑块回调 ------------------------------------------------
+%--- (5) Slider callback -----------------------------------------
     function cb_slider(~, ~)
         if isempty(S.atlasData), return; end
         S.currentSlice = max(1, min(S.nSlices, round(get(hSlider, 'Value'))));
@@ -528,7 +592,7 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         refreshImage();
     end
 
-%--- (6) 方向切换回调 --------------------------------------------
+%--- (6) Orientation change callback -----------------------------
     function cb_orientation(~, evt)
         if isempty(S.atlasData), return; end
         switch evt.NewValue.String
@@ -547,11 +611,11 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         refreshImage();
     end
 
-%--- (7) 重置按钮 ------------------------------------------------
+%--- (7) Reset button --------------------------------------------
     function cb_reset(~, ~)
-        ans3 = questdlg('确定要重置所有内容吗？（当前合并结果将全部清除）', ...
-            '确认重置', '重置', '取消', '取消');
-        if ~strcmp(ans3, '重置'), return; end
+        ans3 = questdlg('Are you sure you want to reset everything? (All current merge results will be cleared.)', ...
+            'Confirm reset', 'Reset', 'Cancel', 'Cancel');
+        if ~strcmp(ans3, 'Reset'), return; end
 
         S.atlasFile    = '';
         S.atlasVol     = [];
@@ -565,7 +629,7 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         S.currentSlice = 1;
         S.nSlices      = 1;
 
-        set(hFileLbl,     'String', '← 请先选择 Atlas NIfTI 文件 (.nii)');
+        set(hFileLbl,     'String', 'Please select an Atlas NIfTI file (.nii) first');
         set(hROITable,    'Data',   {});
         set(hMergedTable, 'Data',   {});
         set(hPreview,     'String', {});
@@ -577,14 +641,14 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         cla(hAx);
         set(hAx, 'Color', 'k');
 
-        setStatus('🔄 已重置 | 请重新加载 Atlas 文件');
+        setStatus('Reset complete | Please reload an Atlas file');
     end
 
 %% ================================================================
-%% 辅助/刷新函数
+%% Helper / refresh functions
 %% ================================================================
 
-%--- 更新切片滑块 ------------------------------------------------
+%--- Update slice slider -----------------------------------------
     function refreshSlider()
         nS   = max(S.nSlices, 2);
         step = [1/(nS-1), min(1, 10/(nS-1))];
@@ -593,27 +657,27 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         set(hSliceLbl, 'String', sprintf('%d/%d', S.currentSlice, S.nSlices));
     end
 
-%--- 刷新ROI表格 -------------------------------------------------
+%--- Refresh ROI table -------------------------------------------
     function refreshROITable()
         n = S.nROI;
         d = cell(n, 4);
         for i = 1:n
-            % uitable 只接受 char，不接受 string —— 统一转换
+            % uitable accepts only char, not string -- convert uniformly
             name = S.Labels{i, 1};
             if isstring(name), name = char(name); end
             d{i, 1} = name;
             d{i, 2} = S.Labels{i, 2};
             d{i, 3} = S.selected(i);
             if S.disabled(i)
-                d{i, 4} = '✗ 已合并';
+                d{i, 4} = 'Merged';
             else
-                d{i, 4} = '✓ 可选';
+                d{i, 4} = 'Available';
             end
         end
         set(hROITable, 'Data', d);
     end
 
-%--- 刷新待合并预览列表 ------------------------------------------
+%--- Refresh the merge preview list ------------------------------
     function refreshPreview()
         selIdx = find(S.selected & ~S.disabled);
         if isempty(selIdx)
@@ -630,7 +694,7 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         end
     end
 
-%--- 刷新已合并ROI表格 -------------------------------------------
+%--- Refresh merged ROI table ------------------------------------
     function refreshMergedTable()
         nM = numel(S.mergedList);
         d  = cell(nM, 3);
@@ -643,11 +707,11 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         set(hMergedTable, 'Data', d);
     end
 
-%--- 刷新图像（含高亮） ------------------------------------------
+%--- Refresh image (with highlight) ------------------------------
     function refreshImage()
         if isempty(S.atlasData) || S.nROI == 0, return; end
 
-        %% 1. 提取当前切片
+        %% 1. Extract current slice
         switch S.orientation
             case 'axial'
                 sl = S.atlasData(:, :, S.currentSlice);
@@ -656,26 +720,26 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             case 'sagittal'
                 sl = squeeze(S.atlasData(S.currentSlice, :, :));
         end
-        sl = rot90(sl);          % 转为正常观察方向
+        sl = rot90(sl);          % Rotate to a natural viewing orientation
         [H, W] = size(sl);
 
-        %% 2. 为每个ROI预先分配颜色
-        %   - 未选中：暗淡的 HSV 色（亮度约 0.40，饱和度低）
-        %   - 已选中：鲜艳的 HSV 色（亮度 1.0，饱和度高）
-        %   - 背景(0)：黑色
+        %% 2. Pre-assign a color for each ROI
+        %   - Unselected: dim HSV color (brightness ~0.40, low saturation)
+        %   - Selected:   vivid HSV color (brightness 1.0, high saturation)
+        %   - Background (0): black
         nROI_   = S.nROI;
-        % 使用线性间隔的色相，让相邻 ROI 颜色也有区别
+        % Linearly spaced hues so adjacent ROI colors differ
         hues    = linspace(0, 1 - 1/nROI_, nROI_)';
-        % 未选中时：低饱和、低亮度（保证可见但不抢眼）
+        % Unselected: low saturation, low brightness (visible but subdued)
         dimClr  = hsv2rgb([hues, repmat(0.55, nROI_, 1), repmat(0.45, nROI_, 1)]);
-        % 选中时：高饱和、高亮度（鲜明高亮）
+        % Selected: high saturation, high brightness (vivid highlight)
         selClr  = hsv2rgb([hues, ones(nROI_, 1), ones(nROI_, 1)]);
 
-        %% 3. 逐像素填色（建立"标签索引→像素"映射）
-        rgb = zeros(H, W, 3, 'double');   % 背景为黑
+        %% 3. Fill pixels (build a "label index -> pixel" mapping)
+        rgb = zeros(H, W, 3, 'double');   % Background is black
         for i = 1:nROI_
-            roiVal = round(S.Labels{i, 2});   % round：防浮点误差
-            mask   = (sl == roiVal);           % sl 已在加载时 round，比较安全
+            roiVal = round(S.Labels{i, 2});   % round: guard against float errors
+            mask   = (sl == roiVal);           % sl was rounded at load time; safe to compare
             if ~any(mask(:)), continue; end
 
             if S.selected(i)
@@ -688,22 +752,22 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             rgb(:,:,3) = rgb(:,:,3) + mask * c(3);
         end
 
-        %% 4. 在 axes 中显示
+        %% 4. Display in the axes
         imagesc(hAx, rgb);
         axis(hAx, 'image', 'off');
         set(hAx, 'XColor', 'none', 'YColor', 'none');
     end
 
-%--- 更新状态栏 --------------------------------------------------
+%--- Update status bar -------------------------------------------
     function setStatus(msg)
         set(hStatus, 'String', msg);
         drawnow;
     end
 
-%--- 保存合并信息（txt + mat）------------------------------------
+%--- Save merge info (txt + mat) ---------------------------------
     function saveMergeInfo(txtPath, matPath, newAtlasName, nMerged)
-        % ---- 1. 构建结构化数据 ----
-        % MergeInfo 是一个 struct array，每个元素对应一条合并记录
+        % ---- 1. Build structured data ----
+        % MergeInfo is a struct array, each element representing one merge record
         MergeInfo = struct( ...
             'NewROI_Name',    {}, ...
             'NewROI_Index',   {}, ...
@@ -718,42 +782,42 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             MergeInfo(k).Orig_ROI_Indices = m.origIdxs;    % double array
         end
 
-        % 元信息
+        % Metadata
         MetaInfo.OrigAtlasFile  = S.atlasFile;
         MetaInfo.NewAtlasName   = newAtlasName;
         MetaInfo.NumMergedROIs  = nMerged;
         MetaInfo.NumOrigROIs    = S.nROI;
         MetaInfo.GeneratedTime  = datestr(now, 'yyyy-mm-dd HH:MM:SS');
 
-        % ---- 2. 保存 MAT 文件 ----
+        % ---- 2. Save MAT file ----
         save(matPath, 'MergeInfo', 'MetaInfo');
 
-        % ---- 3. 保存可读的 TXT 文件 ----
+        % ---- 3. Save human-readable TXT file ----
         fid = fopen(txtPath, 'w', 'n', 'UTF-8');
         if fid == -1
-            error('无法创建文件：%s', txtPath);
+            error('Cannot create file: %s', txtPath);
         end
 
-        % 文件头
+        % Header
         fprintf(fid, '================================================================\r\n');
-        fprintf(fid, '  Atlas ROI 合并信息报告\r\n');
+        fprintf(fid, '  Atlas ROI Merge Information Report\r\n');
         fprintf(fid, '================================================================\r\n');
-        fprintf(fid, '  生成时间    : %s\r\n', MetaInfo.GeneratedTime);
-        fprintf(fid, '  原始 Atlas  : %s\r\n', MetaInfo.OrigAtlasFile);
-        fprintf(fid, '  新 Atlas    : %s\r\n', MetaInfo.NewAtlasName);
-        fprintf(fid, '  原始ROI总数 : %d\r\n', MetaInfo.NumOrigROIs);
-        fprintf(fid, '  合并后ROI数 : %d\r\n', MetaInfo.NumMergedROIs);
+        fprintf(fid, '  Generated time   : %s\r\n', MetaInfo.GeneratedTime);
+        fprintf(fid, '  Original Atlas   : %s\r\n', MetaInfo.OrigAtlasFile);
+        fprintf(fid, '  New Atlas        : %s\r\n', MetaInfo.NewAtlasName);
+        fprintf(fid, '  Original ROI num : %d\r\n', MetaInfo.NumOrigROIs);
+        fprintf(fid, '  Merged ROI num   : %d\r\n', MetaInfo.NumMergedROIs);
         fprintf(fid, '================================================================\r\n\r\n');
 
-        % 每条合并记录
+        % Each merge record
         for k = 1:nMerged
             m = S.mergedList{k};
             nOrig = numel(m.origIdxs);
 
-            fprintf(fid, '【合并 %d / %d】\r\n', k, nMerged);
-            fprintf(fid, '  新脑区名称  : %s\r\n', m.name);
-            fprintf(fid, '  新脑区Index : %d\r\n', m.newIndex);
-            fprintf(fid, '  包含 %d 个原始脑区：\r\n', nOrig);
+            fprintf(fid, '[Merge %d / %d]\r\n', k, nMerged);
+            fprintf(fid, '  New ROI name  : %s\r\n', m.name);
+            fprintf(fid, '  New ROI Index : %d\r\n', m.newIndex);
+            fprintf(fid, '  Contains %d original ROIs:\r\n', nOrig);
             for j = 1:nOrig
                 fprintf(fid, '    [%d]  %s  (Index: %d)\r\n', ...
                     j, m.origNames{j}, m.origIdxs(j));
@@ -761,12 +825,12 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
             fprintf(fid, '\r\n');
         end
 
-        % 附录：所有原始ROI的汇总表
+        % Appendix: summary table of all original ROIs
         fprintf(fid, '================================================================\r\n');
-        fprintf(fid, '  附录：原始 ROI → 新 ROI 完整映射表\r\n');
+        fprintf(fid, '  Appendix: Original ROI -> New ROI full mapping table\r\n');
         fprintf(fid, '================================================================\r\n');
         fprintf(fid, '  %-40s  %-10s  ->  %-40s  %-10s\r\n', ...
-            '原始ROI名称', '原始Index', '新ROI名称', '新Index');
+            'Original ROI name', 'Orig Index', 'New ROI name', 'New Index');
         fprintf(fid, '  %s\r\n', repmat('-', 1, 110));
         for k = 1:nMerged
             m = S.mergedList{k};
@@ -780,7 +844,7 @@ hStatus = uicontrol(fig, 'Style', 'text', ...
         fclose(fid);
     end
 
-%--- 关闭窗口 ----------------------------------------------------
+%--- Close window ------------------------------------------------
     function cb_close(~, ~)
         delete(fig);
     end
