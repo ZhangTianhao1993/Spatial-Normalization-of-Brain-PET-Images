@@ -1,38 +1,30 @@
-function [meanImg,referenceMask] = ...
-    IntensityNormalize(imageNames,referenceName,prefix,methodID,d)
+function IntensityNormalize(imageNames,referenceName,prefix,methodID,d)
 
 % Two intensity standardization methods: mean method and median method.
 
-n = length(imageNames);
-
-imageName1 = imageNames{1};
-Vimg = spm_vol(imageName1);
-imageName1 = Vimg.fname;
-referenceName = referenceName{1};
-Vref = spm_vol(referenceName);
-referenceName = Vref.fname;
-referenceMask = resampleImgToRef(referenceName,imageName1,'nearest');
-referenceMask(isnan(referenceMask)) = 0;
-referenceMask = referenceMask > 0.9;
-v1 = spm_vol(imageName1);
-meanImg = zeros(v1.dim);
-for i=1:n
-    imagenamei = imageNames{i};
-    imagevi = spm_vol(imagenamei);
-    imagei = spm_read_vols(imagevi);
-    imagei(isnan(imagei)) =0;
-    tImg = imagei(referenceMask);
-    if methodID == 1
-        imagei = imagei/mean(tImg(:));
-    elseif methodID == 2
-        imagei = imagei/median(tImg(:));
-    end
-    filename = imagevi.fname;
-    [filepath,name,ext] = fileparts(filename);
-    imagevi.fname = fullfile(filepath,[prefix,name,ext]);
-    imagevi.dt = [16,0];
-    spm_write_vol(spm_create_vol(imagevi),imagei);
-    meanImg = meanImg + imagei/n;
-    d.Value = i/n;
-end
+    n = length(imageNames);
+    refName = referenceName{1};
+    for i=1:n
+        V = spm_vol(imageNames{i});
+        img = spm_read_vols(V);
+        img(isnan(img)) = 0;
     
+        mask = resampleImgToRef(refName, imageNames{i}, 'nearest');
+        mask(isnan(mask)) = 0;
+        mask = mask > 0.9;   
+    
+        tImg = img(mask);
+        if methodID == 1
+            normFactor = mean(tImg);
+        elseif methodID == 2
+            normFactor = median(tImg);
+        end
+        img = img / normFactor;
+        [filepath, name, ext] = fileparts(V.fname);
+        V.fname = fullfile(filepath, [prefix, name, ext]);
+        V.dt = [16, 0];
+        spm_write_vol(spm_create_vol(V), img);
+        d.Value = i/n;
+    end
+    
+end

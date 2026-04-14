@@ -39,7 +39,7 @@ end
 
 function showInstallInstructions()
 % Show manual installation instructions after download
-mainApp = which('SNBPI.mlapp');
+mainApp = which('SNBPI');
 if isempty(mainApp)
     oldPath = '(SNBPI installation folder not found, please locate it manually)';
 else
