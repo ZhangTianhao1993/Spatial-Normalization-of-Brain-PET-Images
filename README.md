@@ -1,6 +1,6 @@
 # SNBPI
 
-A toolbox for spatial normalization of brain PET images  
+A comprehensive pipeline toolbox for full‑workflow brain PET image processing. 
 **Citing Information:**  
 Zhang Tianhao; Nie Binbin; Liu Hua; Shan Baoci; *Unified Spatial Normalization of Brain PET Image Using Adaptive Probabilistic Brain Atlas*; European Journal of Nuclear Medicine and Molecular Imaging, 2022  
 [https://link.springer.com/article/10.1007/s00259-022-05752-6](https://link.springer.com/article/10.1007/s00259-022-05752-6)
