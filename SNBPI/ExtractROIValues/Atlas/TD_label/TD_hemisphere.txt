@@ -1,8 +1,0 @@
-[ Hemispheres ]
-7	Inter-Hemispheric		191 191 191
-4	Left Brainstem			191 191 191
-1	Left Cerebellum			191 191 191
-5	Left Cerebrum			191 191 191
-3	Right Brainstem			191 191 191
-2	Right Cerebellum		191 191 191
-6	Right Cerebrum			191 191 191

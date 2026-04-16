@@ -11,6 +11,7 @@ classdef SNBPI < matlab.apps.AppBase
         DeleteFilesMenu             matlab.ui.container.Menu
         HelpMenu                    matlab.ui.container.Menu
         CheckforUpdatesMenu         matlab.ui.container.Menu
+        AtlasROIReadmeMenu          matlab.ui.container.Menu
 
         % Main layout
         MainGrid                    matlab.ui.container.GridLayout
@@ -129,6 +130,26 @@ classdef SNBPI < matlab.apps.AppBase
         function CheckforUpdatesMenuSelected(app, event)
             checkUpdate(true);
         end
+        function AtlasROIReadmeMenuSelected(app, event)
+            try
+                classPath = which('SNBPI');
+                [folder, ~, ~] = fileparts(classPath);
+                pdfPath = fullfile(folder, 'Atlas_ROI_Toolkit_Readme.pdf');
+                if exist(pdfPath, 'file')
+                    if ispc
+                        winopen(pdfPath);
+                    else
+                        open(pdfPath);
+                    end
+                else
+                    uialert(app.UIFigure, ...
+                        sprintf('PDF file not found:\n%s', pdfPath), ...
+                        'File Not Found');
+                end
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Error');
+            end
+        end
     end
 
     % Component initialization
@@ -163,6 +184,10 @@ classdef SNBPI < matlab.apps.AppBase
             app.CheckforUpdatesMenu = uimenu(app.HelpMenu);
             app.CheckforUpdatesMenu.MenuSelectedFcn = createCallbackFcn(app, @CheckforUpdatesMenuSelected, true);
             app.CheckforUpdatesMenu.Text = 'Check for Updates';
+
+            app.AtlasROIReadmeMenu = uimenu(app.HelpMenu);
+            app.AtlasROIReadmeMenu.MenuSelectedFcn = createCallbackFcn(app, @AtlasROIReadmeMenuSelected, true);
+            app.AtlasROIReadmeMenu.Text = 'Atlas ROI Toolkit Readme';
 
             % ---- Main Grid ----
             app.MainGrid = uigridlayout(app.UIFigure);

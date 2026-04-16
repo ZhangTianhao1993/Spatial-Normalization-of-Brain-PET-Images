@@ -1,1 +1,0 @@
-该atlas来自图谱TD_lobe和TD_hemisphere的结合，也就是使得TD_lobe分左右了。TD_hemispher来自WFU软件包

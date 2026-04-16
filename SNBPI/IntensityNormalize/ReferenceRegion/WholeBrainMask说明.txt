@@ -1,1 +1,0 @@
-这是SPM12的TMP中自带的mask_ICV

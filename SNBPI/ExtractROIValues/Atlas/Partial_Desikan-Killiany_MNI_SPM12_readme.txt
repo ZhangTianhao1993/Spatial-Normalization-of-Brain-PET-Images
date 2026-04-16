@@ -1,0 +1,1 @@
+This constitutes a portion of the DK atlas; it retains the gray matter regions, comprising a total of 84 brain areas, and can be utilized for ComBat_Centiloid calculations.
