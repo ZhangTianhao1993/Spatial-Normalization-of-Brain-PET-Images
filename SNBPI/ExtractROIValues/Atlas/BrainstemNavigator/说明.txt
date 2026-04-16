@@ -1,1 +1,0 @@
-BrainstemNucleiAtlas_MNI和DiencephalicNucleiAtlas_MNI分别是原始文件夹中的2a和2b
