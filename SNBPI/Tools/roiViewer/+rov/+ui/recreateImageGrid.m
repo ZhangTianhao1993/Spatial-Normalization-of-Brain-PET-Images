@@ -4,7 +4,9 @@ function recreateImageGrid(fig)
 % PURPOSE
 %   Called both at startup and whenever the user changes the Rows/Cols
 %   controls. Deletes any existing axes, then lays out a fresh grid of
-%   uiaxes on fig.UserData.h.imagePanel in normalised units.
+%   uiaxes inside a uigridlayout container (placed on fig.UserData.h.imagePanel).
+%   Using uigridlayout ensures correct resizing behaviour even when the
+%   figure is maximised.
 %
 % INPUT
 %   fig : main uifigure handle (fig.UserData.nRows/nCols determine size).
@@ -12,10 +14,13 @@ function recreateImageGrid(fig)
 % SIDE EFFECTS
 %   Replaces fig.UserData.h.imageAxesCell with a new 1 x (nR*nC) cell
 %   array of uiaxes handles.
+%   Creates or reuses a uigridlayout (stored in fig.UserData.h.imageAxesGrid)
+%   that is a child of h.imagePanel.
 %
 % NOTES
-%   Gap sizes are chosen so slice-index titles ("z = N") never collide
-%   with adjacent axes.
+%   Gap sizes are set via RowSpacing / ColumnSpacing and Padding of the
+%   grid layout. These values were chosen so that slice-index titles ("z = N")
+%   never collide with adjacent axes.
 %
 % EXAMPLE
 %   rov.ui.recreateImageGrid(fig);
@@ -32,28 +37,48 @@ function recreateImageGrid(fig)
     end
     s.h.imageAxesCell = {};
 
-    nR = s.nRows;  nC = s.nCols;
+    nR = s.nRows;  
+    nC = s.nCols;
 
-    % Margins / gaps (normalised)
-    ML = 0.005;  MR = 0.005;  MT = 0.030;  MB = 0.005;
-    GH = 0.005;  GV = 0.030;
+    % --- Create or reuse the grid layout container --------------------
+    % The grid is placed inside s.h.imagePanel and fills it completely.
+    if isfield(s.h, 'imageAxesGrid') && isvalid(s.h.imageAxesGrid)
+        grid = s.h.imageAxesGrid;
+        % Clear any remaining children (axes) from previous layout
+        delete(grid.Children);
+    else
+        % Create a new grid layout as child of imagePanel
+        grid = uigridlayout(s.h.imagePanel, ...
+            'RowHeight', repmat({'1x'}, 1, nR), ...
+            'ColumnWidth', repmat({'1x'}, 1, nC), ...
+            'Padding', [5 5 5 5], ...          % [left bottom right top] in pixels
+            'RowSpacing', 20, ...              % enough vertical gap for "z = N" title
+            'ColumnSpacing', 5, ...
+            'BackgroundColor', s.h.imagePanel.BackgroundColor);
+        s.h.imageAxesGrid = grid;
+    end
 
-    PW = (1 - ML - MR - GH*(nC-1)) / nC;
-    PH = (1 - MT - MB - GV*(nR-1)) / nR;
+    % Update grid dimensions if rows/cols have changed
+    grid.RowHeight = repmat({'1x'}, 1, nR);
+    grid.ColumnWidth = repmat({'1x'}, 1, nC);
 
-    for k = 1:nR*nC
-        r  = ceil(k/nC);
-        c  = mod(k-1, nC) + 1;
-        x0 = ML + (c-1)*(PW + GH);
-        y0 = 1  - MT - r*PH - (r-1)*GV;
-
-        ax = uiaxes(s.h.imagePanel, ...
-            'Units','normalized', ...
-            'Position',[x0, y0, PW, PH], ...
-            'Color','k', 'XColor','none','YColor','none', 'Box','off');
-        ax.Toolbar.Visible = 'off';
-        rov.util.safeDisableInteractivity(ax);
-        s.h.imageAxesCell{k} = ax;
+    % --- Create new axes inside the grid layout -----------------------
+    for r = 1:nR
+        for c = 1:nC
+            ax = uiaxes(grid, ...
+                'Color', 'k', ...
+                'XColor', 'none', ...
+                'YColor', 'none', ...
+                'Box', 'off');
+            ax.Toolbar.Visible = 'off';
+            rov.util.safeDisableInteractivity(ax);
+            % Place axes in the grid cell
+            ax.Layout.Row = r;
+            ax.Layout.Column = c;
+            % Store axes handle in linear indexing order (row-major)
+            idx = (r-1)*nC + c;
+            s.h.imageAxesCell{idx} = ax;
+        end
     end
 
     fig.UserData = s;
