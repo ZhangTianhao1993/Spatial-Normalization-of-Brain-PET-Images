@@ -34,13 +34,13 @@ function MRIBasedMethod_Cat12(MRInames,PETnames,bbox,...
     matlabbatch{1}.spm.tools.cat.estwrite.output.surface = 0;
     matlabbatch{1}.spm.tools.cat.estwrite.output.surf_measures = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.ROImenu.noROI = struct([]);
-    matlabbatch{1}.spm.tools.cat.estwrite.output.GM.native = 0;
+    matlabbatch{1}.spm.tools.cat.estwrite.output.GM.native = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.GM.mod = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.GM.dartel = 0;
-    matlabbatch{1}.spm.tools.cat.estwrite.output.WM.native = 0;
+    matlabbatch{1}.spm.tools.cat.estwrite.output.WM.native = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.WM.mod = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.WM.dartel = 0;
-    matlabbatch{1}.spm.tools.cat.estwrite.output.CSF.native = 0;
+    matlabbatch{1}.spm.tools.cat.estwrite.output.CSF.native = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.CSF.warped = 0;
     matlabbatch{1}.spm.tools.cat.estwrite.output.CSF.mod = 1;
     matlabbatch{1}.spm.tools.cat.estwrite.output.CSF.dartel = 0;
