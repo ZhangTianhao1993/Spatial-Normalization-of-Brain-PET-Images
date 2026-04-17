@@ -72,7 +72,7 @@ function MRIBasedMethod_Cat12(MRInames,PETnames,bbox,...
     matlabbatch{1}.spm.tools.cat.estwrite.output.las.warped = 0;
     matlabbatch{1}.spm.tools.cat.estwrite.output.las.dartel = 0;
     matlabbatch{1}.spm.tools.cat.estwrite.output.jacobianwarped = 0;
-    matlabbatch{1}.spm.tools.cat.estwrite.output.warps = [1 0];
+    matlabbatch{1}.spm.tools.cat.estwrite.output.warps = [1 1];
     matlabbatch{1}.spm.tools.cat.estwrite.output.rmat = 0;
     matlabbatch{2}.spm.spatial.coreg.estwrite.ref = '<UNDEFINED>';
     matlabbatch{2}.spm.spatial.coreg.estwrite.source = '<UNDEFINED>';
