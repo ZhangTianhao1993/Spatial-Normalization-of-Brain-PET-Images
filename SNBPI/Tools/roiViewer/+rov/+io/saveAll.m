@@ -45,9 +45,7 @@ function saveAll(fig)
 
     try
         rov.util.setStatus(fig, 'Saving main images @ 600 DPI...'); drawnow;
-        %saveMain(fig, f1);
-        exportgraphics(s.h.imagePanel, f1, ...
-            'Resolution', res, 'BackgroundColor',[0 0 0]);
+        rov.io.exportMainToFile(fig, f1, res);
 
         savedCb = false;
         if rov.util.isContinuousMode(s)

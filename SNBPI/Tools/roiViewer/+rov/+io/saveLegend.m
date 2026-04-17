@@ -32,7 +32,7 @@ function saveLegend(fig)
 
     outFile = fullfile(fpath, fname);
     try
-        rov.io.exportLegendToFile(s.legendEntries, outFile, 300);
+        rov.io.exportLegendToFile(s.legendEntries, outFile, 600);
         rov.util.setStatus(fig, ['Legend saved: ' fname]);
     catch ME
         rov.util.setStatus(fig, ['Save failed: ' ME.message]);

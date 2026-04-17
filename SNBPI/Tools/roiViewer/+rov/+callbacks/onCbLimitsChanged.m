@@ -1,34 +1,30 @@
 function onCbLimitsChanged(fig)
-%ROV.CALLBACKS.ONCBLIMITSCHANGED  Colorbar Min / Max edit field callback.
+%ROV.CALLBACKS.ONCBLIMITSCHANGED  Colorbar Min / Max text field callback.
 %
 % PURPOSE
-%   The colorbar panel exposes two numeric edit fields ("Min" and "Max")
-%   that override the auto-derived data range. This callback reads
-%   their current values, stores them in the state (NaN means "blank,
-%   fall back to data range"), recomputes the legend swatch colours,
-%   and repaints the slices, legend, and colorbar.
+%   Reads the text from the Min / Max edit fields, parses them to
+%   numbers (empty or non-numeric text → NaN = "auto"), stores the
+%   result in s.cbUserMin / s.cbUserMax, and triggers a full redraw
+%   of slices + legend + colorbar.
 %
 % INPUT
 %   fig : main uifigure handle.
 %
 % NOTES
-%   - Empty / NaN entries are treated as "auto"; the field is restored
-%     to NaN in state but the visible value is left as the user typed it
-%     so they can keep editing.
-%   - Reversed limits (Max < Min) are tolerated; the renderer swaps them
-%     internally via rov.util.effectiveCbRange.
+%   - Empty string → NaN → "use data range" for that bound.
+%   - Invalid text (e.g. "abc") → NaN → same as empty.
+%   - Each bound is independent: the user can override just one.
 %
 % EXAMPLE
-%   Bound to the "Min" / "Max" numeric edit fields ValueChangedFcn
+%   Bound to the "Min" / "Max" text edit fields ValueChangedFcn
 %   in rov.ui.buildColorbarPanel.
 
     s = fig.UserData;
 
-    vMin = s.h.numCbMin.Value;
-    vMax = s.h.numCbMax.Value;
-
-    if isempty(vMin) || ~isfinite(vMin), vMin = NaN; end
-    if isempty(vMax) || ~isfinite(vMax), vMax = NaN; end
+    vMin = str2double(strtrim(s.h.txtCbMin.Value));
+    vMax = str2double(strtrim(s.h.txtCbMax.Value));
+    % str2double returns NaN for empty or non-numeric strings, which is
+    % exactly what we want ("auto").
 
     s.cbUserMin  = vMin;
     s.cbUserMax  = vMax;

@@ -12,8 +12,8 @@ function updateColorSchemeUI(fig)
 %   fig : main uifigure handle.
 %
 % SIDE EFFECTS
-%   Toggles Enable state of s.h.ddScheme, s.h.ddCmap, s.h.numCbMin and
-%   s.h.numCbMax; may change s.colorScheme.
+%   Toggles Enable state of s.h.ddScheme, s.h.ddCmap, s.h.txtCbMin and
+%   s.h.txtCbMax; may change s.colorScheme.
 %
 % EXAMPLE
 %   rov.render.updateColorSchemeUI(fig);
@@ -36,13 +36,13 @@ function updateColorSchemeUI(fig)
         end
     end
 
-    if isfield(s.h,'numCbMin') && isvalid(s.h.numCbMin)
+    if isfield(s.h,'txtCbMin') && isvalid(s.h.txtCbMin)
         if cbInputsOn
-            s.h.numCbMin.Enable = 'on';
-            s.h.numCbMax.Enable = 'on';
+            s.h.txtCbMin.Enable = 'on';
+            s.h.txtCbMax.Enable = 'on';
         else
-            s.h.numCbMin.Enable = 'off';
-            s.h.numCbMax.Enable = 'off';
+            s.h.txtCbMin.Enable = 'off';
+            s.h.txtCbMax.Enable = 'off';
         end
     end
 

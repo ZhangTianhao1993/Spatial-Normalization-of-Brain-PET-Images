@@ -3,28 +3,33 @@ function buildColorbarPanel(fig)
 %
 % PURPOSE
 %   Builds the colorbar column that sits between the image grid and the
-%   ROI legend. Two numeric edit fields (Min / Max) let the user
-%   override the auto-derived data range. They are only enabled in
-%   Continuous + single-atlas mode; otherwise they are visually present
-%   but disabled, and the colorbar shows a placeholder strip so the
-%   main column width never reflows.
+%   ROI legend. Two TEXT edit fields (Min / Max) let the user override
+%   the auto-derived data range. They are only enabled in Continuous +
+%   single-atlas mode; otherwise they are visually present but disabled.
+%
+%   TEXT edit fields are used instead of numeric ones because the
+%   numeric AllowEmpty property was not added until R2023b, and this
+%   viewer targets R2020b+. An empty text field means "auto (use data
+%   range)"; any valid number overrides that bound.
 %
 % INPUT
 %   fig : main uifigure handle.
 %
 % SIDE EFFECTS
-%   Populates fig.UserData.h.cbGrid, lblCbTitle, cbAx, numCbMax, numCbMin.
+%   Populates fig.UserData.h.cbGrid, lblCbTitle, cbAx, txtCbMax, txtCbMin.
 %
-% LAYOUT (top to bottom, matching numerical reading order)
+% LAYOUT (top to bottom)
 %   row 1 : "Colorbar" header label
 %   row 2 : "Max" label
-%   row 3 : Max edit field (placed above the colorbar)
+%   row 3 : Max text edit field
 %   row 4 : the colorbar axes itself (stretches)
-%   row 5 : Min edit field (placed below the colorbar)
+%   row 5 : Min text edit field
 %   row 6 : "Min" label
 %
 % EXAMPLE
 %   rov.ui.buildColorbarPanel(fig);
+%
+% See also: rov.callbacks.onCbLimitsChanged
 
     s = fig.UserData;
     C = rov.ui.uiTheme();
@@ -44,13 +49,14 @@ function buildColorbarPanel(fig)
         'FontColor', C.muted, 'FontSize', 9, ...
         'HorizontalAlignment','center');
 
-    s.h.numCbMax = uieditfield(g, 'numeric', ...
-        'AllowEmpty',         true, ...
+    % TEXT edit field (not numeric) so we can leave it empty on R2020b+.
+    % Empty = auto; valid number = user override.
+    s.h.txtCbMax = uieditfield(g, 'text', ...
+        'Value',              '', ...
         'BackgroundColor',    C.ctrl, ...
         'FontColor',          C.text, ...
         'HorizontalAlignment','center', ...
-        'Tooltip',            'Override colorbar max (clear field for auto)', ...
-        'ValueDisplayFormat', '%.4g', ...
+        'Tooltip',            'Override colorbar max (leave empty for auto)', ...
         'ValueChangedFcn',    @(~,~) rov.callbacks.onCbLimitsChanged(fig));
 
     s.h.cbAx = uiaxes(g, ...
@@ -59,24 +65,21 @@ function buildColorbarPanel(fig)
     s.h.cbAx.Toolbar.Visible = 'off';
     rov.util.safeDisableInteractivity(s.h.cbAx);
 
-    s.h.numCbMin = uieditfield(g, 'numeric', ...
-        'AllowEmpty',         true, ...
+    s.h.txtCbMin = uieditfield(g, 'text', ...
+        'Value',              '', ...
         'BackgroundColor',    C.ctrl, ...
         'FontColor',          C.text, ...
         'HorizontalAlignment','center', ...
-        'Tooltip',            'Override colorbar min (clear field for auto)', ...
-        'ValueDisplayFormat', '%.4g', ...
+        'Tooltip',            'Override colorbar min (leave empty for auto)', ...
         'ValueChangedFcn',    @(~,~) rov.callbacks.onCbLimitsChanged(fig));
 
     uilabel(g, 'Text','Min', ...
         'FontColor', C.muted, 'FontSize', 9, ...
         'HorizontalAlignment','center');
 
-    % Start blank so they read as "auto" on a fresh viewer.
-    s.h.numCbMax.Value  = [];
-    s.h.numCbMin.Value  = [];
-    s.h.numCbMax.Enable = 'off';
-    s.h.numCbMin.Enable = 'off';
+    % Start disabled (enabled only in Continuous mode)
+    s.h.txtCbMax.Enable = 'off';
+    s.h.txtCbMin.Enable = 'off';
 
     fig.UserData = s;
 end

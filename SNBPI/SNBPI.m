@@ -134,16 +134,12 @@ classdef SNBPI < matlab.apps.AppBase
             try
                 classPath = which('SNBPI');
                 [folder, ~, ~] = fileparts(classPath);
-                pdfPath = fullfile(folder, 'Atlas_ROI_Toolkit_Readme.pdf');
-                if exist(pdfPath, 'file')
-                    if ispc
-                        winopen(pdfPath);
-                    else
-                        open(pdfPath);
-                    end
+                htmlPath = fullfile(folder, 'Atlas_ROI_Toolkit_Readme.html');
+                if exist(htmlPath, 'file')
+                    web(['file:///' strrep(htmlPath, '\', '/')], '-browser');
                 else
                     uialert(app.UIFigure, ...
-                        sprintf('PDF file not found:\n%s', pdfPath), ...
+                        sprintf('HTML file not found:\n%s', htmlPath), ...
                         'File Not Found');
                 end
             catch ME

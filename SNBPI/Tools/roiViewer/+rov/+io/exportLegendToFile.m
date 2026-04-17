@@ -2,24 +2,22 @@ function exportLegendToFile(entries, outFile, dpi)
 %ROV.IO.EXPORTLEGENDTOFILE  Export an ROI legend to an image file.
 %
 % PURPOSE
-%   The on-screen legend lives in a SCROLLABLE uigridlayout, and
-%   exportgraphics cannot capture content scrolled out of view (and
-%   on R2020b/R2021a sometimes refuses to run on a scrollable
-%   container at all). This helper instead builds a DISPOSABLE,
-%   off-screen plain figure that contains every legend entry stacked
-%   vertically (no scrolling), exports it, and deletes it. The result
-%   is a single image that always shows ALL ROIs, regardless of how
-%   many there are.
+%   The on-screen legend uses scrollable UI components (uilabel /
+%   uipanel), which exportgraphics refuses to render ("UI components
+%   will not be included in the output"). This helper instead builds a
+%   REGULAR off-screen figure with a plain axes, draws each legend row
+%   as patch + text (pure graphics objects), exports it with
+%   exportgraphics at the requested DPI, and cleans up.
 %
 % INPUTS
 %   entries : struct array with fields .color (1x3) and .name (char).
 %   outFile : full path to the output image file (.tif/.tiff/.png).
-%   dpi     : resolution in DPI for exportgraphics (e.g. 300, 600).
+%   dpi     : resolution for exportgraphics (e.g. 300, 600).
 %
 % BEHAVIOUR
-%   - Returns silently for empty entries (writes nothing).
-%   - Disposable figure is created with Visible = 'off' so the user
-%     never sees it flash on-screen.
+%   - Returns silently for empty entries.
+%   - Disposable figure is created with Visible='off' (the user never
+%     sees it flash on-screen).
 %   - Always cleans up the figure even on export failure.
 %
 % EXAMPLE
@@ -30,52 +28,52 @@ function exportLegendToFile(entries, outFile, dpi)
     end
 
     nE       = numel(entries);
-    rowH_px  = 22;           % matches the on-screen LEGEND_ROW_PX
-    swatchPx = 26;           % matches updateLegend swatch column
-    padPx    = 8;
-    figW_px  = 360;          % wide enough for most ROI names
-    figH_px  = 2*padPx + nE*rowH_px + max(0, (nE-1)*2);
+    rowH     = 0.6;      % normalised height per row (axes units)
+    swatchW  = 0.15;     % swatch width (fraction of axes X)
+    textX    = 0.20;     % text left edge
+    padY     = 0.3;      % top/bottom padding
+
+    totalH   = nE * rowH + 2 * padY;
 
     bgColor = [0 0 0];
-    fg      = [1 1 1];
+    fg      = [0.88 0.88 0.88];
 
-    % Disposable hidden figure - use uifigure to keep the same widget
-    % family as the live UI (matches font rendering exactly).
-    f = uifigure( ...
-        'Visible',   'off', ...
-        'Units',     'pixels', ...
-        'Position',  [0 0 figW_px figH_px], ...
-        'Color',     bgColor, ...
-        'AutoResizeChildren','off');
+    % --- Regular figure (NOT uifigure) so exportgraphics works --------
+    %     figW/figH in pixels only affect aspect ratio at export; actual
+    %     resolution comes from the dpi parameter.
+    figW_px = 360;
+    figH_px = max(80, round(22 * nE + 16));
+
+    f = figure('Visible','off', 'Color', bgColor, ...
+               'Units','pixels', 'Position',[0 0 figW_px figH_px], ...
+               'MenuBar','none', 'ToolBar','none', ...
+               'NumberTitle','off', 'Name','legend_export');
     cleaner = onCleanup(@() delete(f));
 
-    grid = uigridlayout(f, [nE, 2], ...
-        'ColumnWidth',     {swatchPx, '1x'}, ...
-        'RowHeight',       repmat({rowH_px}, 1, nE), ...
-        'Padding',         [padPx padPx padPx padPx], ...
-        'RowSpacing',      2, ...
-        'ColumnSpacing',   6, ...
-        'Scrollable',      'off', ...
-        'BackgroundColor', bgColor);
+    ax = axes(f, 'Units','normalized', 'Position',[0 0 1 1], ...
+              'Color', bgColor, 'XColor','none', 'YColor','none', ...
+              'XLim',[0 1], 'YLim',[0 totalH], ...
+              'YDir','reverse', 'Box','off');
+    hold(ax, 'on');
 
     for k = 1:nE
-        e = entries(k);
+        e  = entries(k);
+        y0 = padY + (k - 1) * rowH;
 
-        sw = uipanel(grid, ...
-            'BackgroundColor', e.color, ...
-            'BorderType','none');
-        sw.Layout.Row    = k;
-        sw.Layout.Column = 1;
+        % Colour swatch (filled rectangle via patch)
+        patch(ax, ...
+              [0.03, 0.03+swatchW, 0.03+swatchW, 0.03], ...
+              [y0+0.08, y0+0.08, y0+rowH-0.08, y0+rowH-0.08], ...
+              e.color, 'EdgeColor','none');
 
-        lbl = uilabel(grid, ...
-            'Text',       e.name, ...
-            'FontColor',  fg, ...
-            'FontSize',   10, ...
-            'WordWrap',   'off');
-        lbl.Layout.Row    = k;
-        lbl.Layout.Column = 2;
+        % ROI name
+        text(ax, textX, y0 + rowH/2, e.name, ...
+             'Color', fg, 'FontSize', 10, ...
+             'VerticalAlignment','middle', ...
+             'Interpreter','none', 'Clipping','on');
     end
+    hold(ax, 'off');
 
-    drawnow;            % make sure widgets are realised before export
-    exportapp(f, outFile);
+    exportgraphics(ax, outFile, ...
+        'Resolution', dpi, 'BackgroundColor', bgColor);
 end
