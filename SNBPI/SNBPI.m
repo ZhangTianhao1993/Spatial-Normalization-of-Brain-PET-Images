@@ -9,6 +9,7 @@ classdef SNBPI < matlab.apps.AppBase
         AtlasMergerMenu             matlab.ui.container.Menu
         OverlayViewerMenu           matlab.ui.container.Menu
         DeleteFilesMenu             matlab.ui.container.Menu
+        Dicom2BidsMenu              matlab.ui.container.Menu
         HelpMenu                    matlab.ui.container.Menu
         CheckforUpdatesMenu         matlab.ui.container.Menu
         AtlasROIReadmeMenu          matlab.ui.container.Menu
@@ -127,6 +128,10 @@ classdef SNBPI < matlab.apps.AppBase
             deleteFilesApp;
         end
 
+        function Dicom2BidsMenuSelected(app, event)
+            dicom2bids_gui;
+        end
+
         function CheckforUpdatesMenuSelected(app, event)
             checkUpdate(true);
         end
@@ -173,6 +178,10 @@ classdef SNBPI < matlab.apps.AppBase
             app.DeleteFilesMenu = uimenu(app.ToolsMenu);
             app.DeleteFilesMenu.MenuSelectedFcn = createCallbackFcn(app, @DeleteFilesMenuSelected, true);
             app.DeleteFilesMenu.Text = 'Delete Files';
+
+            app.Dicom2BidsMenu = uimenu(app.ToolsMenu);
+            app.Dicom2BidsMenu.MenuSelectedFcn = createCallbackFcn(app, @Dicom2BidsMenuSelected, true);
+            app.Dicom2BidsMenu.Text = 'DICOM to BIDS';
 
             app.HelpMenu = uimenu(app.UIFigure);
             app.HelpMenu.Text = 'Help';
