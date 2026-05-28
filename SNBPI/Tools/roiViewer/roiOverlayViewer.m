@@ -47,9 +47,14 @@ function fig = roiOverlayViewer(varargin)
         labelsIn = rov.io.tryLoadAtlasLabels(atlasIn{1});
     end
 
-    % --- Create figure -------------------------------------------------
+    % --- Create figure (fit to screen on small displays) ---------------
+    scr  = get(0, 'ScreenSize');
+    figW = min(1500, scr(3) - 80);
+    figH = min(800,  scr(4) - 120);
+    figX = max(1, (scr(3) - figW) / 2);
+    figY = max(1, (scr(4) - figH) / 2);
     fig = uifigure('Name', 'ROI Overlay Viewer', ...
-                   'Position', [40 40 1500 800], ...
+                   'Position', [figX figY figW figH], ...
                    'Color', [0.11 0.11 0.11]);
     fig.UserData = rov.initState(imgIn, atlasIn, labelsIn);
 

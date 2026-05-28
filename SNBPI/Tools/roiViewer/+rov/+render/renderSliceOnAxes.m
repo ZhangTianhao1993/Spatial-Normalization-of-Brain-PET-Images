@@ -22,9 +22,21 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
 
     isCont = rov.util.isContinuousMode(s);
 
+    % Resolve display range filter (applies to atlas values, not background)
+    hasDispRange = (isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)) || ...
+                   (isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax));
+
     if isCont
         atlasSlice = rov.compute.extractSlice(s.atlasVols{1}, sliceIdx, s.viewDir);
         validMask  = isfinite(atlasSlice) & atlasSlice ~= 0;
+        if hasDispRange
+            if isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)
+                validMask = validMask & (atlasSlice >= s.dispRangeMin);
+            end
+            if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
+                validMask = validMask & (atlasSlice <= s.dispRangeMax);
+            end
+        end
         nC         = size(s.cmap, 1);
 
         % Compute the active range fresh so rendering NEVER depends on
@@ -78,6 +90,14 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
                 mask = isfinite(asl) & asl ~= 0;
             else
                 mask = (asl == en.label);
+            end
+            if hasDispRange
+                if isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)
+                    mask = mask & (asl >= s.dispRangeMin);
+                end
+                if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
+                    mask = mask & (asl <= s.dispRangeMax);
+                end
             end
             for ch = 1:3
                 chan = rgbSlice(:,:,ch);

@@ -55,6 +55,8 @@ function s = initState(imgIn, atlasIn, labelsIn)
     s.atlasVmax       = 1;
     s.cbUserMin       = NaN;   % NaN = use data range; set by Min input
     s.cbUserMax       = NaN;   % NaN = use data range; set by Max input
+    s.dispRangeMin    = NaN;   % NaN = no lower bound; display range filter
+    s.dispRangeMax    = NaN;   % NaN = no upper bound; display range filter
     s.legendEntries   = [];
     s.h               = struct();
 end
