@@ -51,7 +51,7 @@ function exportMainToFile(fig, outFile, dpi)
     cleaner = onCleanup(@() delete(f));
 
     % Margins / gaps (normalised) — same as recreateImageGrid
-    ML = 0.005;  MR = 0.005;  MT = 0.030;  MB = 0.005;
+    ML = 0.005;  MR = 0.005;  MT = 0.050;  MB = 0.005;
     GH = 0.005;  GV = 0.030;
     PW = (1 - ML - MR - GH*(nC-1)) / nC;
     PH = (1 - MT - MB - GV*(nR-1)) / nR;
@@ -90,9 +90,29 @@ function renderOnAxes(ax, sliceIdx, axLabel, s)
 
     isCont = rov.util.isContinuousMode(s);
 
+    % Resolve display range filter (applies to atlas values, not background)
+    hasDispRange = (isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)) || ...
+                   (isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax));
+    hasDispAbs   = isfield(s,'dispRangeAbs')  && isfinite(s.dispRangeAbs);
+    hasCluster   = isfield(s,'clusterSize')   && isfinite(s.clusterSize) && s.clusterSize > 0;
+
     if isCont
         atlasSlice = rov.compute.extractSlice(s.atlasVols{1}, sliceIdx, s.viewDir);
         validMask  = isfinite(atlasSlice) & atlasSlice ~= 0;
+        if hasDispRange
+            if isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)
+                validMask = validMask & (atlasSlice >= s.dispRangeMin);
+            end
+            if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
+                validMask = validMask & (atlasSlice <= s.dispRangeMax);
+            end
+        end
+        if hasDispAbs
+            validMask = validMask & (abs(atlasSlice) >= s.dispRangeAbs);
+        end
+        if hasCluster
+            validMask = rov.util.filterByClusterSize(validMask, s.clusterSize);
+        end
         nC         = size(s.cmap, 1);
 
         [vmin, vmax, isDeg] = rov.compute.liveAtlasRange(s);
@@ -119,6 +139,20 @@ function renderOnAxes(ax, sliceIdx, axLabel, s)
                 mask = isfinite(asl) & asl ~= 0;
             else
                 mask = (asl == en.label);
+            end
+            if hasDispRange
+                if isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)
+                    mask = mask & (asl >= s.dispRangeMin);
+                end
+                if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
+                    mask = mask & (asl <= s.dispRangeMax);
+                end
+            end
+            if hasDispAbs
+                mask = mask & (abs(asl) >= s.dispRangeAbs);
+            end
+            if hasCluster
+                mask = rov.util.filterByClusterSize(mask, s.clusterSize);
             end
             for ch = 1:3
                 chan = rgbSlice(:,:,ch);

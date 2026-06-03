@@ -26,9 +26,11 @@ function onDispRangeChanged(fig)
 
     vMin = str2double(strtrim(s.h.txtDispMin.Value));
     vMax = str2double(strtrim(s.h.txtDispMax.Value));
+    vAbs = str2double(strtrim(s.h.txtDispAbs.Value));
 
     s.dispRangeMin = vMin;
     s.dispRangeMax = vMax;
+    s.dispRangeAbs = vAbs;
     fig.UserData   = s;
 
     if s.isDataLoaded

@@ -25,6 +25,8 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
     % Resolve display range filter (applies to atlas values, not background)
     hasDispRange = (isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)) || ...
                    (isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax));
+    hasDispAbs   = isfield(s,'dispRangeAbs')  && isfinite(s.dispRangeAbs);
+    hasCluster   = isfield(s,'clusterSize')   && isfinite(s.clusterSize) && s.clusterSize > 0;
 
     if isCont
         atlasSlice = rov.compute.extractSlice(s.atlasVols{1}, sliceIdx, s.viewDir);
@@ -36,6 +38,12 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
             if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
                 validMask = validMask & (atlasSlice <= s.dispRangeMax);
             end
+        end
+        if hasDispAbs
+            validMask = validMask & (abs(atlasSlice) >= s.dispRangeAbs);
+        end
+        if hasCluster
+            validMask = rov.util.filterByClusterSize(validMask, s.clusterSize);
         end
         nC         = size(s.cmap, 1);
 
@@ -98,6 +106,12 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
                 if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
                     mask = mask & (asl <= s.dispRangeMax);
                 end
+            end
+            if hasDispAbs
+                mask = mask & (abs(asl) >= s.dispRangeAbs);
+            end
+            if hasCluster
+                mask = rov.util.filterByClusterSize(mask, s.clusterSize);
             end
             for ch = 1:3
                 chan = rgbSlice(:,:,ch);

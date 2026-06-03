@@ -57,6 +57,8 @@ function s = initState(imgIn, atlasIn, labelsIn)
     s.cbUserMax       = NaN;   % NaN = use data range; set by Max input
     s.dispRangeMin    = NaN;   % NaN = no lower bound; display range filter
     s.dispRangeMax    = NaN;   % NaN = no upper bound; display range filter
+    s.dispRangeAbs    = NaN;   % NaN = no abs threshold; show |value| >= this
+    s.clusterSize     = 0;     % 0 = off; remove clusters smaller than this (voxels)
     s.legendEntries   = [];
     s.h               = struct();
 end
