@@ -1,51 +1,51 @@
 function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
-% DICOM2BIDS_CONVERT  把含 DICOM 的源目录转换为 BIDS 风格的 PET/CT/MR 数据集.
+% DICOM2BIDS_CONVERT  Convert a source directory containing DICOM files to a BIDS-style PET/CT/MR dataset.
 %
-% 用法:
+% Usage:
 %   dicom2bids_convert()
 %   dicom2bids_convert(DirA, DirB)
 %   dicom2bids_convert(DirA, DirB, dcm2niixPath)
 %   dicom2bids_convert(DirA, DirB, dcm2niixPath, 'Name', Value, ...)
 %
-% 可选 name-value:
-%   'Compress'       (false) 是否输出 .nii.gz (-z y) 而非 .nii (-z n)
-%   'Modalities'     ({'pet','ct','mr'})  仅转换这些模态, 其他记入 skipped
-%   'ProgressFcn'    ([])    function_handle, 每个关键事件回调一次
-%                            参数为 struct, 字段包括:
+% Optional name-value:
+%   'Compress'       (false)  Whether to output .nii.gz (-z y) instead of .nii (-z n)
+%   'Modalities'     ({'pet','ct','mr'})  Only convert these modalities; others are logged as skipped
+%   'ProgressFcn'    ([])    function_handle, called once for each key event
+%                            Parameter is a struct with fields:
 %                              .phase  'scan-start' / 'scan-done' /
 %                                      'convert' / 'write' /
 %                                      'done' / 'cancelled' / 'error'
-%                              .i, .n   当前进度
+%                              .i, .n   current progress
 %                              .srcFolder, .dstFile, .msg, .level
-%                              .stats   struct (仅 done 阶段)
-%                              .log     struct (仅 done 阶段, 含 failures 等)
-%   'CancelChecker'  ([])    function_handle, 返回 true 即在下次循环边界停止
+%                              .stats   struct (done phase only)
+%                              .log     struct (done phase only, includes failures etc.)
+%   'CancelChecker'  ([])    function_handle, returns true to stop at the next loop boundary
 %
-% dcm2niix 定位顺序 (dcm2niixPath 为空时):
-%   1. 与本 .m 同目录 (SNBPI/Tools/dcm2niix.exe)
-%   2. 本 .m 文件上一级 Tools/
-%   3. 系统 PATH
+% dcm2niix resolution order (when dcm2niixPath is empty):
+%   1. Same directory as this .m file (SNBPI/Tools/dcm2niix.exe)
+%   2. Tools/ directory one level above this .m file
+%   3. System PATH
 %
-% 依赖:
-%   - dcm2niix (随 SNBPI 工具包分发, 在 Tools 文件夹)
+% Dependencies:
+%   - dcm2niix (distributed with SNBPI toolbox, in the Tools folder)
 %   - MATLAB Image Processing Toolbox (dicominfo)
 %   - MATLAB R2021a+
 
-    %% --- 0a. 输入处理 -----------------------------------------------------
+    %% --- 0a. Input Processing --------------------------------------------------
     if nargin < 1 || isempty(DirA)
-        DirA = uigetdir(pwd, '请选择源 DICOM 文件夹 DirA');
-        if isequal(DirA, 0), disp('已取消。'); return; end
+        DirA = uigetdir(pwd, 'Select the source DICOM folder DirA');
+        if isequal(DirA, 0), disp('Cancelled.'); return; end
     end
     if nargin < 2 || isempty(DirB)
-        DirB = uigetdir(pwd, '请选择 BIDS 输出文件夹 DirB');
-        if isequal(DirB, 0), disp('已取消。'); return; end
+        DirB = uigetdir(pwd, 'Select the BIDS output folder DirB');
+        if isequal(DirB, 0), disp('Cancelled.'); return; end
     end
     if nargin < 3, dcm2niixPath = ''; end
 
-    if ~isfolder(DirA), error('源文件夹不存在: %s', DirA); end
+    if ~isfolder(DirA), error('Source folder does not exist: %s', DirA); end
     if ~isfolder(DirB), mkdir(DirB); end
 
-    %% --- 0b. name-value 选项 ---------------------------------------------
+    %% --- 0b. Name-Value Options ------------------------------------------------
     ip = inputParser;
     ip.addParameter('Compress', false, @(x) islogical(x) && isscalar(x));
     ip.addParameter('Modalities', {'pet','ct','mr'}, ...
@@ -63,7 +63,7 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         niiExt = '.nii';    zFlag = 'n';
     end
 
-    %% --- 1. 检查 dcm2niix 与 IPT -----------------------------------------
+    %% --- 1. Check dcm2niix and IPT --------------------------------------------
     if opts.EvaluateOnly
         dcm2niixCmd = '';
         dcm2niixVer = '';
@@ -71,46 +71,46 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         dcm2niixCmd = resolveDcm2niix(dcm2niixPath);
         [status, verOut] = system(sprintf('"%s" -h', dcm2niixCmd));
         if status ~= 0 && ~contains(lower(verOut), 'dcm2niix')
-            error('调用 dcm2niix 失败 (cmd=%s)\n输出:\n%s', dcm2niixCmd, verOut);
+            error('Failed to call dcm2niix (cmd=%s)\nOutput:\n%s', dcm2niixCmd, verOut);
         end
         dcm2niixVer = extractDcm2niixVersion(verOut);
-        fprintf('使用 dcm2niix: %s  (%s)\n', dcm2niixCmd, dcm2niixVer);
+        fprintf('Using dcm2niix: %s  (%s)\n', dcm2niixCmd, dcm2niixVer);
     end
 
     if ~(license('test','image_toolbox') && exist('dicominfo','file')==2)
-        error('需要 Image Processing Toolbox (用于 dicominfo)。');
+        error('Image Processing Toolbox is required (for dicominfo).');
     end
 
-    %% --- 2. 准备日志 ------------------------------------------------------
+    %% --- 2. Prepare Log -------------------------------------------------------
     logPath = fullfile(DirB, 'conversion_log.txt');
     log = struct('failures',{{}}, 'skipped',{{}}, 'headerIssues',{{}}, ...
                  'tracerUnknown',{{}}, 'modalityUnknown',{{}}, ...
                  'patientNameMissing',{{}}, 'dateBadFormat',{{}});
 
-    %% --- 3. 扫描所有含 DICOM 的子文件夹 ----------------------------------
+    %% --- 3. Scan All Subfolders Containing DICOM ------------------------------
     callProgress(opts, struct('phase','scan-start', 'msg', ...
-                              sprintf('扫描 %s ...', DirA), 'level','info'));
-    fprintf('正在扫描 %s ...\n', DirA);
+                              sprintf('Scanning %s ...', DirA), 'level','info'));
+    fprintf('Scanning %s ...\n', DirA);
     dicomFolders = findDicomFolders(DirA);
     nTotal = numel(dicomFolders);
     if nTotal == 0
         callProgress(opts, struct('phase','done', 'level','warn', ...
-            'msg','未找到任何 DICOM 文件', ...
+            'msg','No DICOM files found', ...
             'stats', struct('folders',0,'nii',0,'ok',0,'skipped',0,'failed',0), ...
             'log', log, 'cancelled', false));
-        fprintf('未找到任何 DICOM 文件。\n'); return;
+        fprintf('No DICOM files found.\n'); return;
     end
     callProgress(opts, struct('phase','scan-done', 'n', nTotal, ...
-        'msg', sprintf('扫描到 %d 个 DICOM 序列文件夹', nTotal), 'level','info'));
-    fprintf('共找到 %d 个 DICOM 序列文件夹。\n\n', nTotal);
+        'msg', sprintf('Found %d DICOM sequence folders', nTotal), 'level','info'));
+    fprintf('Found %d DICOM sequence folders.\n\n', nTotal);
 
-    %% --- 3.5 评估模式: 不转换, 只扫描头信息 ---------------------------
+    %% --- 3.5 Evaluation Mode: No Conversion, Only Scan Header Info -------------
     if opts.EvaluateOnly
         runEvaluation(dicomFolders, nTotal, opts);
         return;
     end
 
-    %% --- 4. 第一遍: 转换每个 DICOM 文件夹到临时目录, 收集计划项 ----------
+    %% --- 4. First Pass: Convert Each DICOM Folder to Temp, Collect Plans -------
     plans = {};
 
     tempRoot = fullfile(tempdir, ...
@@ -126,35 +126,52 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
     cancelled = false;
 
     for fi = 1:nTotal
-        % --- 软取消检查 ---
+        % --- Soft cancel check ---
         if isCancelled(opts), cancelled = true; break; end
 
         srcFolder = dicomFolders{fi};
 
         callProgress(opts, struct('phase','convert', 'i', fi, 'n', nTotal, ...
             'srcFolder', srcFolder, ...
-            'msg', sprintf('[%d/%d] 转换中: %s', fi, nTotal, srcFolder), ...
+            'msg', sprintf('[%d/%d] Converting: %s', fi, nTotal, srcFolder), ...
             'level','info'));
 
         if mod(fi, 25) == 0 || fi == 1 || fi == nTotal
-            fprintf('[%d/%d] 转换中: %s\n', fi, nTotal, srcFolder);
+            fprintf('[%d/%d] Converting: %s\n', fi, nTotal, srcFolder);
         end
 
         tmpDir = fullfile(tempRoot, sprintf('s%05d', fi));
         mkdir(tmpDir);
 
-        cmd = sprintf('"%s" -z %s -b y -ba n -w 2 -f "%%p_%%s" -o "%s" "%s"', ...
-                      dcm2niixCmd, zFlag, tmpDir, srcFolder);
-        [status, cmdOut] = system(cmd);
-
+        nameFmt = '%p_%s_%r';
+        baseCmd = sprintf('"%s" -z %s -b y -ba n -w 2 -f "%s" -o "%s" "%s"', ...
+                          dcm2niixCmd, zFlag, nameFmt, tmpDir, srcFolder);
+        [status, cmdOut] = system(baseCmd);
         niiList = dir(fullfile(tmpDir, ['*' niiExt]));
+
+        % --- Dynamic series fallback: when merging fails by default or naming
+        %     conflicts exceed 26 (a-z), dcm2niix reports "Too many NIFTI images
+        %     with the name" and fails. Retry once with -m y to merge frames into
+        %     a single 4D file. ---
+        if (status ~= 0 || isempty(niiList)) && ...
+                contains(cmdOut, 'Too many NIFTI images')
+            cleanDir(tmpDir);                 % Clear partial output from first attempt
+            mergeCmd = sprintf('"%s" -z %s -b y -ba n -m y -w 2 -f "%s" -o "%s" "%s"', ...
+                               dcm2niixCmd, zFlag, nameFmt, tmpDir, srcFolder);
+            callProgress(opts, struct('phase','convert', 'i', fi, 'n', nTotal, ...
+                'srcFolder', srcFolder, 'level','warn', ...
+                'msg', '  ! Detected multi-frame naming conflict, retrying with -m y to merge into 4D'));
+            [status, cmdOut] = system(mergeCmd);
+            niiList = dir(fullfile(tmpDir, ['*' niiExt]));
+        end
+
         if status ~= 0 || isempty(niiList)
             log.failures{end+1, 1} = struct('src', srcFolder, ...
                                              'reason', strtrim(cmdOut));
             failedCount = failedCount + 1;
             callProgress(opts, struct('phase','convert', 'i', fi, 'n', nTotal, ...
                 'srcFolder', srcFolder, 'level','error', ...
-                'msg', sprintf('  ✗ dcm2niix 失败: %s', firstLine(cmdOut))));
+                'msg', sprintf('  X dcm2niix failed: %s', firstLine(cmdOut))));
             continue;
         end
 
@@ -172,14 +189,14 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
                     bidsData = jsondecode(fileread(srcJson));
                 catch ME
                     log.headerIssues{end+1,1} = struct('src', srcFolder, ...
-                        'reason', sprintf('JSON 解码失败 (%s): %s', ...
+                        'reason', sprintf('JSON decode failed (%s): %s', ...
                                           srcJson, ME.message));
                 end
             end
 
             [fullData, sampleDicomPath] = readFirstDicomHeader(srcFolder);
 
-            % 决定模态: OT 先于 isempty
+            % Determine modality: OT checked before isempty
             [bidsModality, modSrc] = decideModality(bidsData, fullData);
             if strcmpi(modSrc, 'OT')
                 log.skipped{end+1,1} = struct('src', srcFolder, ...
@@ -196,16 +213,16 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
                 continue;
             end
 
-            % 模态白名单过滤
+            % Modality whitelist filter
             if ~ismember(bidsModality, opts.Modalities)
                 log.skipped{end+1,1} = struct('src', srcFolder, ...
-                    'reason', sprintf('模态被过滤 (Modalities 选项不含 %s)', ...
+                    'reason', sprintf('Modality filtered out (Modalities option does not include %s)', ...
                                       bidsModality));
                 skippedCount = skippedCount + 1;
                 continue;
             end
 
-            % --- 派生 sub ---
+            % --- Derive sub ---
             issues = {};
             [subLabel, subSourceUsed, hadName] = deriveSub(bidsData, fullData, srcFolder);
             if ~hadName
@@ -219,17 +236,17 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
                         sprintf('unknown%03d', unknownPatientCounter);
                 end
                 subLabel = unknownSubMap(srcFolder);
-                issues{end+1} = sprintf('PatientName/ID 都缺失, sub=%s', subLabel); %#ok<AGROW>
+                issues{end+1} = sprintf('PatientName/ID both missing, sub=%s', subLabel); %#ok<AGROW>
             end
 
-            % --- 派生 ses ---
+            % --- Derive ses ---
             [sesLabel, sesSourceUsed, dateOk] = deriveSes(bidsData, fullData);
             if ~dateOk
                 log.dateBadFormat{end+1,1} = struct('src', srcFolder, ...
                     'fallback', sprintf('ses=%s (from %s)', sesLabel, sesSourceUsed));
             end
 
-            % --- 派生 trc ---
+            % --- Derive trc ---
             trcLabel = deriveTracer(bidsData, fullData);
             if isempty(trcLabel) && strcmp(bidsModality, 'pet')
                 log.tracerUnknown{end+1,1} = struct('src', srcFolder, ...
@@ -250,7 +267,7 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
                 case 'mr',  suffix = deriveMrSuffix(bidsData);
                 otherwise
                     log.skipped{end+1,1} = struct('src', srcFolder, ...
-                        'reason', sprintf('未知模态值: %s', bidsModality));
+                        'reason', sprintf('Unknown modality value: %s', bidsModality));
                     skippedCount = skippedCount + 1;
                     continue;
             end
@@ -276,7 +293,7 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         end
     end
 
-    %% --- 5. 计算 run 编号 (按分组) ----------------------------------------
+    %% --- 5. Compute Run Numbers (By Group) -------------------------------------
     if ~isempty(plans)
         groupKeys = cellfun(@(p) sprintf('%s|%s|%s|%s|%s|%s', ...
                                          p.sub, p.ses, p.modality, ...
@@ -297,8 +314,8 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         end
     end
 
-    %% --- 6. 第二遍: 把每个 plan 写到 BIDS 位置 ---------------------------
-    fprintf('\n开始组织到 BIDS 结构...\n');
+    %% --- 6. Second Pass: Write Each Plan to BIDS Location ----------------------
+    fprintf('\nOrganizing into BIDS structure...\n');
     participantsMap = containers.Map('KeyType','char','ValueType','any');
 
     for pi = 1:numel(plans)
@@ -322,12 +339,12 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
             end
         catch ME
             log.failures{end+1,1} = struct('src', p.srcFolder, ...
-                'reason', sprintf('移动文件失败: %s', ME.message));
+                'reason', sprintf('File move failed: %s', ME.message));
             failedCount = failedCount + 1;
             callProgress(opts, struct('phase','write', 'i', pi, ...
                 'n', numel(plans), 'srcFolder', p.srcFolder, ...
                 'level','error', ...
-                'msg', sprintf('  ✗ 移动失败: %s', ME.message)));
+                'msg', sprintf('  X Move failed: %s', ME.message)));
             continue;
         end
 
@@ -353,10 +370,10 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         callProgress(opts, struct('phase','write', 'i', pi, ...
             'n', numel(plans), 'srcFolder', p.srcFolder, ...
             'dstFile', [baseName niiExt], 'level','info', ...
-            'msg', sprintf('  → %s', [baseName niiExt])));
+            'msg', sprintf('  -> %s', [baseName niiExt])));
     end
 
-    %% --- 7. 写 dataset_description.json ----------------------------------
+    %% --- 7. Write dataset_description.json ------------------------------------
     ddPath = fullfile(DirB, 'dataset_description.json');
     if ~isfile(ddPath)
         dd = struct();
@@ -368,28 +385,28 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         writeJsonPretty(ddPath, dd);
     end
 
-    %% --- 8. participants.tsv --------------------------------------------
+    %% --- 8. participants.tsv -----------------------------------------------
     writeParticipantsTsv(fullfile(DirB,'participants.tsv'), participantsMap);
 
-    %% --- 9. 追加日志 -----------------------------------------------------
+    %% --- 9. Append Log --------------------------------------------------------
     appendLog(logPath, DirA, DirB, dcm2niixCmd, dcm2niixVer, ...
               nTotal, niiTotal, successCount, skippedCount, failedCount, ...
               cancelled, log);
 
     fprintf('\n=========================================\n');
-    if cancelled, fprintf('已取消 (但已写出的文件保留)。\n'); end
-    fprintf('扫描序列文件夹: %d\n', nTotal);
-    fprintf('产生 .nii 文件: %d (成功: %d  跳过: %d  失败: %d)\n', ...
+    if cancelled, fprintf('Cancelled (written files are kept).\n'); end
+    fprintf('Scanned sequence folders: %d\n', nTotal);
+    fprintf('Generated .nii files: %d (Success: %d  Skipped: %d  Failed: %d)\n', ...
             niiTotal, successCount, skippedCount, failedCount);
-    fprintf('日志: %s\n', logPath);
+    fprintf('Log: %s\n', logPath);
 
-    %% --- 10. 通知 GUI 完成 ----------------------------------------------
+    %% --- 10. Notify GUI Completion --------------------------------------------
     finalPhase = 'done';
     if cancelled, finalPhase = 'cancelled'; end
     callProgress(opts, struct( ...
         'phase',     finalPhase, ...
         'level',     'info', ...
-        'msg',       '转换完成', ...
+        'msg',       'Conversion complete', ...
         'stats',     struct('folders',nTotal, 'nii',niiTotal, ...
                             'ok',successCount, 'skipped',skippedCount, ...
                             'failed',failedCount), ...
@@ -401,7 +418,7 @@ end
 
 
 %% ====================================================================
-%% ============   以下为辅助子函数   ====================================
+%% ============   Helper Subfunctions Below   ==========================
 %% ====================================================================
 
 function callProgress(opts, info)
@@ -433,12 +450,12 @@ function cmd = resolveDcm2niix(userPath)
         if isfolder(userPath)
             if ispc, cand = fullfile(userPath, 'dcm2niix.exe');
             else,    cand = fullfile(userPath, 'dcm2niix'); end
-            if ~isfile(cand), error('在 %s 中未找到 dcm2niix。', userPath); end
+            if ~isfile(cand), error('dcm2niix not found in %s.', userPath); end
             cmd = cand;
         elseif isfile(userPath)
             cmd = userPath;
         else
-            error('dcm2niixPath 既不是文件夹也不是文件: %s', userPath);
+            error('dcm2niixPath is neither a folder nor a file: %s', userPath);
         end
         return;
     end
@@ -654,7 +671,7 @@ end
 
 function [n, j, f] = ensureUniquePaths(n, j, f, niiExt)
     if ~isfile(n), return; end
-    nBase = n(1:end-length(niiExt));  % 兼容 .nii.gz
+    nBase = n(1:end-length(niiExt));  % Compatible with .nii.gz
     [dj, bj, ej] = fileparts(j);
     [df, bf, ef] = fileparts(f);
     k = 1;
@@ -679,7 +696,7 @@ function writeFullHeaderJson(path, info)
         s = jsonencode(cleanInfo);
     end
     fid = fopen(path, 'w', 'n', 'UTF-8');
-    if fid < 0, warning('writeFullHeaderJson: 无法写入 %s', path); return; end
+    if fid < 0, warning('writeFullHeaderJson: unable to write %s', path); return; end
     fprintf(fid, '%s', s); fclose(fid);
 end
 
@@ -747,7 +764,7 @@ function writeJsonPretty(path, data)
     try, s = jsonencode(data, 'PrettyPrint', true);
     catch, s = jsonencode(data); end
     fid = fopen(path, 'w', 'n', 'UTF-8');
-    if fid < 0, warning('writeJsonPretty: 无法写入 %s', path); return; end
+    if fid < 0, warning('writeJsonPretty: unable to write %s', path); return; end
     fprintf(fid, '%s', s); fclose(fid);
 end
 
@@ -764,7 +781,7 @@ function writeParticipantsTsv(path, newMap)
         catch, end
     end
     fid = fopen(path, 'w', 'n', 'UTF-8');
-    if fid < 0, warning('writeParticipantsTsv: 无法写入 %s', path); return; end
+    if fid < 0, warning('writeParticipantsTsv: unable to write %s', path); return; end
     fprintf(fid, 'participant_id\tpatient_name\tpatient_id\tpatient_sex\tpatient_age\tpatient_birth_date\tn_sessions\n');
     keysAll = {};
     if ~isempty(fieldnames(existing)), keysAll = fieldnames(existing); end
@@ -797,20 +814,20 @@ function s = nz(s), if isempty(s), s = 'n/a'; end, end
 function appendLog(path, srcRoot, dstRoot, dcmCmd, dcmVer, ...
                    nFolders, nNii, nOk, nSkip, nFail, cancelled, log)
     fid = fopen(path, 'a', 'n', 'UTF-8');
-    if fid < 0, warning('appendLog: 无法写入 %s', path); return; end
-    fprintf(fid, '\n=== 运行 %s ===\n', datestr(now,'yyyy-mm-dd HH:MM:SS'));
-    fprintf(fid, '源:       %s\n', srcRoot);
-    fprintf(fid, '目标:     %s\n', dstRoot);
+    if fid < 0, warning('appendLog: unable to write %s', path); return; end
+    fprintf(fid, '\n=== Run %s ===\n', datestr(now,'yyyy-mm-dd HH:MM:SS'));
+    fprintf(fid, 'Source:   %s\n', srcRoot);
+    fprintf(fid, 'Dest:     %s\n', dstRoot);
     fprintf(fid, 'dcm2niix: %s (%s)\n', dcmCmd, dcmVer);
-    if cancelled, fprintf(fid, '*** 运行被用户取消 ***\n'); end
+    if cancelled, fprintf(fid, '*** Run cancelled by user ***\n'); end
     fprintf(fid, '\n');
     fprintf(fid, '== Summary ==\n');
-    fprintf(fid, '扫描序列文件夹: %d\n', nFolders);
-    fprintf(fid, '产生 .nii 文件: %d\n', nNii);
-    fprintf(fid, '  成功写出:     %d\n', nOk);
-    fprintf(fid, '  跳过:         %d\n', nSkip);
-    fprintf(fid, '  失败:         %d\n', nFail);
-    fprintf(fid, '警告(总): PatientName缺失=%d, 日期格式异常=%d, 头不全=%d, 示踪剂未识别=%d, 模态未识别=%d\n\n', ...
+    fprintf(fid, 'Scanned sequence folders: %d\n', nFolders);
+    fprintf(fid, 'Generated .nii files: %d\n', nNii);
+    fprintf(fid, '  Written successfully:     %d\n', nOk);
+    fprintf(fid, '  Skipped:         %d\n', nSkip);
+    fprintf(fid, '  Failed:         %d\n', nFail);
+    fprintf(fid, 'Warnings (total): patientNameMissing=%d dateBadFormat=%d headerIssues=%d tracerUnknown=%d modalityUnknown=%d\n\n', ...
         numel(log.patientNameMissing), numel(log.dateBadFormat), ...
         numel(log.headerIssues), numel(log.tracerUnknown), numel(log.modalityUnknown));
     writeLogSection(fid, '== Failures ==', log.failures, ...
@@ -850,6 +867,16 @@ function safeRmdir(p)
     if isfolder(p), try, rmdir(p, 's'); catch, end, end
 end
 
+function cleanDir(p)
+% Delete all files under directory p (keep the directory itself), used to clean up partial output before retry.
+    if ~isfolder(p), return; end
+    items = dir(p);
+    for i = 1:numel(items)
+        if items(i).isdir, continue; end
+        try, delete(fullfile(p, items(i).name)); catch, end
+    end
+end
+
 function runEvaluation(dicomFolders, nTotal, opts)
 % Run in evaluation mode: scan DICOM headers, report metadata, no file conversion.
     nOk = 0; nFiltered = 0; nUnknown = 0; nOt = 0; nError = 0;
@@ -872,7 +899,7 @@ function runEvaluation(dicomFolders, nTotal, opts)
                 'subLabel', '?', 'sesLabel', '?', 'trcLabel', '', ...
                 'acqLabel', '', 'suffix', '', ...
                 'nDicomFiles', countDicomFiles(srcFolder), ...
-                'status', 'error', 'statusMsg', '头信息读取失败'));
+                'status', 'error', 'statusMsg', 'Failed to read header info'));
             nError = nError + 1;
             continue;
         end
@@ -886,14 +913,14 @@ function runEvaluation(dicomFolders, nTotal, opts)
 
         % Classify status
         if strcmp(modSrc, 'OT')
-            status = 'ot'; statusMsg = '其他(OT)'; nOt = nOt + 1;
+            status = 'ot'; statusMsg = 'Other (OT)'; nOt = nOt + 1;
         elseif isempty(bidsModality)
-            status = 'unknown_modality'; statusMsg = '模态未知'; nUnknown = nUnknown + 1;
+            status = 'unknown_modality'; statusMsg = 'Unknown modality'; nUnknown = nUnknown + 1;
         elseif ~ismember(bidsModality, opts.Modalities)
-            status = 'filtered'; statusMsg = sprintf('已过滤(未勾选%s)', upper(bidsModality));
+            status = 'filtered'; statusMsg = sprintf('Filtered out (not selected: %s)', upper(bidsModality));
             nFiltered = nFiltered + 1;
         else
-            status = 'ok'; statusMsg = '正常'; nOk = nOk + 1;
+            status = 'ok'; statusMsg = 'Normal'; nOk = nOk + 1;
         end
 
         % Derive BIDS labels (for identifiable modalities)

@@ -1,14 +1,14 @@
 function dicom2bids_gui()
-% DICOM2BIDS_GUI  SNBPI: DICOM -> BIDS 转换器图形界面
+% DICOM2BIDS_GUI  SNBPI: DICOM -> BIDS Converter GUI
 %
-% 调用:
+% Call:
 %   dicom2bids_gui
 %
-% 依赖:
-%   - dicom2bids_convert (同一文件夹或在 MATLAB path 上)
+% Dependencies:
+%   - dicom2bids_convert (same folder or on MATLAB path)
 %   - MATLAB R2021a+ (uifigure / uigridlayout / uitable DoubleClickedFcn)
 
-    %% ---- 状态变量 (闭包共享) -------------------------------------------
+    %% ---- State variables (closure-shared) ----------------------------------
     cancelRequested = false;
     isRunning       = false;
     isEvalRunning   = false;
@@ -18,12 +18,12 @@ function dicom2bids_gui()
 
     PREF_GROUP = 'SNBPI_dicom2bids';
 
-    % 上次路径
+    % Last used paths
     lastDirA   = safeGetPref(PREF_GROUP, 'lastDirA', '');
     lastDirB   = safeGetPref(PREF_GROUP, 'lastDirB', '');
     lastDcmExe = safeGetPref(PREF_GROUP, 'lastDcmExe', '');
 
-    %% ---- 主窗口 ---------------------------------------------------------
+    %% ---- Main window -------------------------------------------------------
     fig = uifigure('Name', 'SNBPI — DICOM to BIDS Converter', ...
                    'Position', [200 120 900 660], ...
                    'CloseRequestFcn', @onClose);
@@ -34,60 +34,60 @@ function dicom2bids_gui()
     g.ColumnWidth = {'1x'};
     g.Padding     = [12 12 12 12];
 
-    %% ---- 路径行 1: 源 DICOM --------------------------------------------
-    [edtA, btnA] = makePathRow(g, '源 DICOM:', lastDirA);
-    btnA.ButtonPushedFcn = @(~,~) onBrowseDir(edtA, '请选择源 DICOM 文件夹');
+    %% ---- Path row 1: Source DICOM ------------------------------------------
+    [edtA, btnA] = makePathRow(g, 'Source DICOM:', lastDirA);
+    btnA.ButtonPushedFcn = @(~,~) onBrowseDir(edtA, 'Select source DICOM folder');
 
-    %% ---- 路径行 2: 输出 BIDS --------------------------------------------
-    [edtB, btnB] = makePathRow(g, '输出 BIDS:', lastDirB);
-    btnB.ButtonPushedFcn = @(~,~) onBrowseDir(edtB, '请选择 BIDS 输出文件夹');
+    %% ---- Path row 2: Output BIDS -------------------------------------------
+    [edtB, btnB] = makePathRow(g, 'Output BIDS:', lastDirB);
+    btnB.ButtonPushedFcn = @(~,~) onBrowseDir(edtB, 'Select BIDS output folder');
 
-    %% ---- 路径行 3: dcm2niix ---------------------------------------------
+    %% ---- Path row 3: dcm2niix ----------------------------------------------
     row3 = uigridlayout(g, [1 3]);
     row3.ColumnWidth = {110, '1x', 90};
     row3.Padding = [0 0 0 0];
     row3.ColumnSpacing = 8;
     uilabel(row3, 'Text', 'dcm2niix:', 'HorizontalAlignment','right');
     edtX = uieditfield(row3, 'text', 'Value', lastDcmExe, ...
-        'Placeholder', '留空 = 自动从 SNBPI/Tools 定位');
-    btnX = uibutton(row3, 'Text', '指定...', ...
+        'Placeholder', 'Leave empty = auto-locate from SNBPI/Tools');
+    btnX = uibutton(row3, 'Text', 'Specify...', ...
         'ButtonPushedFcn', @(~,~) onBrowseFile(edtX, ...
-            '选择 dcm2niix 可执行文件'));
+            'Select dcm2niix executable'));
 
-    %% ---- 选项行 ---------------------------------------------------------
+    %% ---- Options row -------------------------------------------------------
     optPanel = uipanel(g, 'BorderType','line', 'Title','');
     optG = uigridlayout(optPanel, [1 5]);
     optG.ColumnWidth = {130, 70, 70, 70, '1x'};
     optG.Padding = [10 4 10 4];
     optG.ColumnSpacing = 12;
-    cbCompress = uicheckbox(optG, 'Text', '压缩 (.nii.gz)', 'Value', false);
-    uilabel(optG, 'Text', '模态:', 'HorizontalAlignment','right');
+    cbCompress = uicheckbox(optG, 'Text', 'Compress (.nii.gz)', 'Value', false);
+    uilabel(optG, 'Text', 'Modality:', 'HorizontalAlignment','right');
     cbPet = uicheckbox(optG, 'Text', 'PET', 'Value', true);
     cbCt  = uicheckbox(optG, 'Text', 'CT',  'Value', true);
     cbMr  = uicheckbox(optG, 'Text', 'MR',  'Value', true);
 
-    %% ---- 控制行 ---------------------------------------------------------
+    %% ---- Control row -------------------------------------------------------
     ctrlG = uigridlayout(g, [1 7]);
     ctrlG.ColumnWidth = {90, 75, 75, 75, '1x', 200, 90};
     ctrlG.Padding = [0 0 0 0];
     ctrlG.ColumnSpacing = 8;
 
-    btnStart = uibutton(ctrlG, 'Text', '▶ 开始', ...
+    btnStart = uibutton(ctrlG, 'Text', '▶ Start', ...
         'BackgroundColor', [0.18 0.55 0.98], 'FontColor', [1 1 1], ...
         'FontWeight', 'bold', ...
         'ButtonPushedFcn', @onStart);
 
-    btnEval = uibutton(ctrlG, 'Text', '评估预览', ...
+    btnEval = uibutton(ctrlG, 'Text', 'Evaluate Preview', ...
         'BackgroundColor', [0.93 0.85 0.65], ...
         'ButtonPushedFcn', @onEval);
 
-    btnCancel = uibutton(ctrlG, 'Text', '■ 停止', 'Enable', 'off', ...
+    btnCancel = uibutton(ctrlG, 'Text', '■ Stop', 'Enable', 'off', ...
         'ButtonPushedFcn', @onCancel);
 
-    btnOpen = uibutton(ctrlG, 'Text', '打开输出', 'Enable', 'off', ...
+    btnOpen = uibutton(ctrlG, 'Text', 'Open Output', 'Enable', 'off', ...
         'ButtonPushedFcn', @onOpenOutput);
 
-    uilabel(ctrlG, 'Text', '');  % 占位
+    uilabel(ctrlG, 'Text', '');  % Placeholder
 
     gauge = uigauge(ctrlG, 'linear', 'Limits', [0 100], 'Value', 0, ...
         'ScaleColors', {[0.18 0.55 0.98]}, ...
@@ -97,70 +97,70 @@ function dicom2bids_gui()
     lblProgress = uilabel(ctrlG, 'Text', '0 / 0', ...
         'HorizontalAlignment','right', 'FontColor', [0.4 0.4 0.4]);
 
-    %% ---- 状态行 ---------------------------------------------------------
-    lblStatus = uilabel(g, 'Text', '就绪。', ...
+    %% ---- Status row --------------------------------------------------------
+    lblStatus = uilabel(g, 'Text', 'Ready.', ...
         'FontColor', [0.4 0.4 0.4]);
 
-    %% ---- 计数行 ---------------------------------------------------------
+    %% ---- Counts row --------------------------------------------------------
     lblCounts = uilabel(g, 'Text', '', ...
         'FontColor', [0.3 0.3 0.3], 'FontWeight', 'bold');
 
-    %% ---- TabGroup -------------------------------------------------------
+    %% ---- TabGroup ----------------------------------------------------------
     tg = uitabgroup(g);
 
-    % 日志 tab
-    tabLog = uitab(tg, 'Title', '日志');
+    % Log tab
+    tabLog = uitab(tg, 'Title', 'Log');
     tabLogG = uigridlayout(tabLog, [1 1]);
     tabLogG.Padding = [0 0 0 0];
     txtLog = uitextarea(tabLogG, 'Editable','off', 'Value', {''}, ...
         'FontName', 'Consolas');
 
-    % 失败 tab
-    tabFail = uitab(tg, 'Title', '失败 (0)');
+    % Failed tab
+    tabFail = uitab(tg, 'Title', 'Failed (0)');
     tabFailG = uigridlayout(tabFail, [1 1]);
     tabFailG.Padding = [0 0 0 0];
     tblFail = uitable(tabFailG, ...
-        'ColumnName', {'源文件夹', '原因'}, ...
+        'ColumnName', {'Source Folder', 'Reason'}, ...
         'ColumnWidth', {320, 'auto'}, ...
         'Data', cell(0,2), ...
         'RowName', '', ...
         'DoubleClickedFcn', @onDoubleClickTable);
 
-    % 跳过 tab
-    tabSkip = uitab(tg, 'Title', '跳过 (0)');
+    % Skipped tab
+    tabSkip = uitab(tg, 'Title', 'Skipped (0)');
     tabSkipG = uigridlayout(tabSkip, [1 1]);
     tabSkipG.Padding = [0 0 0 0];
     tblSkip = uitable(tabSkipG, ...
-        'ColumnName', {'源文件夹', '原因'}, ...
+        'ColumnName', {'Source Folder', 'Reason'}, ...
         'ColumnWidth', {320, 'auto'}, ...
         'Data', cell(0,2), ...
         'RowName', '', ...
         'DoubleClickedFcn', @onDoubleClickTable);
 
-    % 警告 tab (聚合: PatientName 缺失 / 日期异常 / 头问题 / Tracer 未识别 / Modality 未识别)
-    tabWarn = uitab(tg, 'Title', '警告 (0)');
+    % Warnings tab (aggregated: PatientName missing / date invalid / header issues / Tracer unrecognized / Modality unrecognized)
+    tabWarn = uitab(tg, 'Title', 'Warnings (0)');
     tabWarnG = uigridlayout(tabWarn, [1 1]);
     tabWarnG.Padding = [0 0 0 0];
     tblWarn = uitable(tabWarnG, ...
-        'ColumnName', {'类型', '源文件夹', '详情'}, ...
+        'ColumnName', {'Type', 'Source Folder', 'Details'}, ...
         'ColumnWidth', {120, 280, 'auto'}, ...
         'Data', cell(0,3), ...
         'RowName', '', ...
         'DoubleClickedFcn', @onDoubleClickTable);
 
-    % 评估结果 tab
-    tabEval = uitab(tg, 'Title', '评估结果 (0)');
+    % Evaluation tab
+    tabEval = uitab(tg, 'Title', 'Evaluation (0)');
     tabEvalG = uigridlayout(tabEval, [1 1]);
     tabEvalG.Padding = [0 0 0 0];
     tblEval = uitable(tabEvalG, ...
-        'ColumnName', {'源文件夹', '模态', '序列描述', 'sub', 'ses', '示踪剂', '文件数', '状态'}, ...
+        'ColumnName', {'Source Folder', 'Modality', 'Series Desc', 'sub', 'ses', 'Tracer', '#Files', 'Status'}, ...
         'ColumnWidth', {280, 45, 'auto', 70, 60, 65, 45, 55}, ...
         'Data', cell(0,8), ...
         'RowName', '', ...
         'DoubleClickedFcn', @onDoubleClickTable);
 
     %% =====================================================================
-    %% 回调函数 (nested) ---------------------------------------------------
+    %% Callback functions (nested) -----------------------------------------
     %% =====================================================================
 
     function [edt, btn] = makePathRow(parent, labelText, defaultVal)
@@ -170,14 +170,14 @@ function dicom2bids_gui()
         rowG.ColumnSpacing = 8;
         uilabel(rowG, 'Text', labelText, 'HorizontalAlignment','right');
         edt = uieditfield(rowG, 'text', 'Value', defaultVal);
-        btn = uibutton(rowG, 'Text', '浏览...');
+        btn = uibutton(rowG, 'Text', 'Browse...');
     end
 
     function onBrowseDir(edt, prompt)
         startDir = edt.Value;
         if isempty(startDir) || ~isfolder(startDir), startDir = pwd; end
         d = uigetdir(startDir, prompt);
-        figure(fig);  % uigetdir 后把焦点拿回来
+        figure(fig);  % Bring focus back after uigetdir
         if ~isequal(d, 0), edt.Value = d; end
     end
 
@@ -186,8 +186,8 @@ function dicom2bids_gui()
         if ~isempty(edt.Value) && isfile(edt.Value)
             startDir = fileparts(edt.Value);
         end
-        if ispc, filt = {'*.exe','可执行文件 (*.exe)'; '*.*','所有文件'};
-        else,    filt = {'*','所有文件'}; end
+        if ispc, filt = {'*.exe','Executable (*.exe)'; '*.*','All Files'};
+        else,    filt = {'*','All Files'}; end
         [f, p] = uigetfile(filt, prompt, startDir);
         figure(fig);
         if ~isequal(f, 0), edt.Value = fullfile(p, f); end
@@ -201,14 +201,14 @@ function dicom2bids_gui()
         DcmX = strtrim(edtX.Value);
 
         if ~isfolder(DirA)
-            uialert(fig, sprintf('源 DICOM 文件夹不存在:\n%s', DirA), '输入错误');
+            uialert(fig, sprintf('Source DICOM folder does not exist:\n%s', DirA), 'Input Error');
             return;
         end
         if isempty(DirB)
-            uialert(fig, '请选择输出 BIDS 文件夹', '输入错误'); return;
+            uialert(fig, 'Please select an output BIDS folder', 'Input Error'); return;
         end
         if ~isempty(DcmX) && ~isfile(DcmX) && ~isfolder(DcmX)
-            uialert(fig, sprintf('dcm2niix 路径无效:\n%s', DcmX), '输入错误');
+            uialert(fig, sprintf('Invalid dcm2niix path:\n%s', DcmX), 'Input Error');
             return;
         end
 
@@ -217,27 +217,27 @@ function dicom2bids_gui()
         if cbCt.Value,  mods{end+1} = 'ct';  end
         if cbMr.Value,  mods{end+1} = 'mr';  end
         if isempty(mods)
-            uialert(fig, '至少要勾选一种模态', '输入错误'); return;
+            uialert(fig, 'At least one modality must be selected', 'Input Error'); return;
         end
 
-        % 保存路径偏好
+        % Save path preferences
         safeSetPref(PREF_GROUP, 'lastDirA',   DirA);
         safeSetPref(PREF_GROUP, 'lastDirB',   DirB);
         safeSetPref(PREF_GROUP, 'lastDcmExe', DcmX);
 
-        % UI 切到运行态
+        % Switch UI to running state
         cancelRequested = false;
         isRunning = true;
         lastOutDir = DirB;
         setRunningState(true);
         clearResults();
-        appendLogLine(sprintf('=== 开始: %s ===', datestr(now,'yyyy-mm-dd HH:MM:SS')));
-        appendLogLine(sprintf('  源: %s', DirA));
-        appendLogLine(sprintf('  目标: %s', DirB));
-        appendLogLine(sprintf('  模态: %s    压缩: %s', ...
-                              strjoin(mods,'/'), ternary(cbCompress.Value,'是','否')));
+        appendLogLine(sprintf('=== Start: %s ===', datestr(now,'yyyy-mm-dd HH:MM:SS')));
+        appendLogLine(sprintf('  Source: %s', DirA));
+        appendLogLine(sprintf('  Target: %s', DirB));
+        appendLogLine(sprintf('  Modalities: %s    Compress: %s', ...
+                              strjoin(mods,'/'), ternary(cbCompress.Value,'Yes','No')));
 
-        % 跑
+        % Run
         try
             dicom2bids_convert(DirA, DirB, DcmX, ...
                 'Compress',      cbCompress.Value, ...
@@ -245,8 +245,8 @@ function dicom2bids_gui()
                 'ProgressFcn',   @onProgress, ...
                 'CancelChecker', @() cancelRequested);
         catch ME
-            appendLogLine(sprintf('!!! 错误: %s', ME.message));
-            uialert(fig, sprintf('转换出错:\n%s', ME.message), '错误');
+            appendLogLine(sprintf('!!! Error: %s', ME.message));
+            uialert(fig, sprintf('Conversion error:\n%s', ME.message), 'Error');
         end
 
         isRunning = false;
@@ -256,9 +256,9 @@ function dicom2bids_gui()
     function onCancel(~, ~)
         if ~isRunning && ~isEvalRunning, return; end
         cancelRequested = true;
-        appendLogLine('正在请求取消, 请稍候...');
+        appendLogLine('Requesting cancellation, please wait...');
         btnCancel.Enable = 'off';
-        lblStatus.Text = '正在取消...';
+        lblStatus.Text = 'Cancelling...';
     end
 
     function onEval(~, ~)
@@ -269,31 +269,31 @@ function dicom2bids_gui()
         DcmX = strtrim(edtX.Value);
 
         if ~isfolder(DirA)
-            uialert(fig, sprintf('源 DICOM 文件夹不存在:\n%s', DirA), '输入错误');
+            uialert(fig, sprintf('Source DICOM folder does not exist:\n%s', DirA), 'Input Error');
             return;
         end
         if isempty(DirB)
-            uialert(fig, '请选择输出 BIDS 文件夹', '输入错误'); return;
+            uialert(fig, 'Please select an output BIDS folder', 'Input Error'); return;
         end
 
         safeSetPref(PREF_GROUP, 'lastDirA', DirA);
         safeSetPref(PREF_GROUP, 'lastDirB', DirB);
         safeSetPref(PREF_GROUP, 'lastDcmExe', DcmX);
 
-        % UI 切到评估态
+        % Switch UI to evaluation state
         cancelRequested = false;
         isEvalRunning   = true;
         tblEval.Data = cell(0,8);
-        tabEval.Title = '评估结果 (0)';
+        tabEval.Title = 'Evaluation (0)';
         btnEval.Enable  = 'off';
         btnStart.Enable = 'off';
         btnCancel.Enable = 'on';
-        btnCancel.Text = '停止评估';
+        btnCancel.Text = 'Stop Evaluation';
         btnOpen.Enable  = 'off';
         lblCounts.Text = '';
         gauge.Value = 0;
-        lblProgress.Text = '评估中...';
-        lblStatus.Text = '正在评估...';
+        lblProgress.Text = 'Evaluating...';
+        lblStatus.Text = 'Evaluating...';
         drawnow;
 
         try
@@ -303,16 +303,16 @@ function dicom2bids_gui()
                 'ProgressFcn', @onEvalProgress, ...
                 'CancelChecker', @() cancelRequested);
         catch ME
-            lblStatus.Text = '评估出错';
-            appendLogLine(sprintf('!!! 评估错误: %s', ME.message));
-            uialert(fig, sprintf('评估出错:\n%s', ME.message), '错误');
+            lblStatus.Text = 'Evaluation error';
+            appendLogLine(sprintf('!!! Evaluation error: %s', ME.message));
+            uialert(fig, sprintf('Evaluation error:\n%s', ME.message), 'Error');
         end
 
         isEvalRunning = false;
         btnEval.Enable  = 'on';
         btnStart.Enable = 'on';
         btnCancel.Enable = 'off';
-        btnCancel.Text = '■ 停止';
+        btnCancel.Text = '■ Stop';
         btnOpen.Enable = 'on';
     end
 
@@ -321,7 +321,7 @@ function dicom2bids_gui()
             case 'scan-start'
                 lblStatus.Text = info.msg;
                 gauge.Value = 0;
-                lblProgress.Text = '扫描中...';
+                lblProgress.Text = 'Scanning...';
 
             case 'scan-done'
                 gauge.Value = 5;
@@ -331,23 +331,23 @@ function dicom2bids_gui()
                        info.subLabel, info.sesLabel, info.trcLabel, ...
                        info.nDicomFiles, info.statusMsg};
                 tblEval.Data = [tblEval.Data; row];
-                tabEval.Title = sprintf('评估结果 (%d)', size(tblEval.Data,1));
-                lblStatus.Text = sprintf('评估中 [%d/%d]', info.index, info.total);
-                lblProgress.Text = sprintf('评估 %d / %d', info.index, info.total);
+                tabEval.Title = sprintf('Evaluation (%d)', size(tblEval.Data,1));
+                lblStatus.Text = sprintf('Evaluating [%d/%d]', info.index, info.total);
+                lblProgress.Text = sprintf('Evaluating %d / %d', info.index, info.total);
                 gauge.Value = 5 + 85 * info.index / info.total;
                 drawnow limitrate;
 
             case 'evaluate-done'
-                lblStatus.Text = sprintf('评估完成: %d 个序列', info.total);
+                lblStatus.Text = sprintf('Evaluation complete: %d series', info.total);
                 lblProgress.Text = '';
                 lblCounts.Text = sprintf(...
-                    '序列: %d  |  正常: %d  已过滤: %d  模态未知: %d  其他(OT): %d  头信息错误: %d', ...
+                    'Series: %d  |  OK: %d  Filtered: %d  Unknown Modality: %d  Other(OT): %d  Header Error: %d', ...
                     info.total, info.ok, info.filtered, info.unknown, info.ot, info.error);
                 gauge.Value = 100;
-                tabEval.Title = sprintf('评估结果 (%d/%d)', info.ok + info.filtered, info.total);
+                tabEval.Title = sprintf('Evaluation (%d/%d)', info.ok + info.filtered, info.total);
 
             case 'cancelled'
-                lblStatus.Text = '评估已取消';
+                lblStatus.Text = 'Evaluation cancelled';
                 lblProgress.Text = '';
                 gauge.Value = 0;
         end
@@ -364,19 +364,19 @@ function dicom2bids_gui()
 
     function onOpenOutput(~, ~)
         if isempty(lastOutDir) || ~isfolder(lastOutDir)
-            uialert(fig, '输出文件夹不存在。', '提示');
+            uialert(fig, 'Output folder does not exist.', 'Info');
             return;
         end
         openInFileManager(lastOutDir);
     end
 
     function onProgress(info)
-        % 关键: 让 Cancel 等 UI 事件能被处理
+        % Allow UI events (Cancel, etc.) to be processed
         switch info.phase
             case 'scan-start'
                 lblStatus.Text = info.msg;
                 gauge.Value = 0;
-                lblProgress.Text = '扫描中...';
+                lblProgress.Text = 'Scanning...';
 
             case 'scan-done'
                 lblStatus.Text = info.msg;
@@ -385,21 +385,21 @@ function dicom2bids_gui()
 
             case 'convert'
                 if isfield(info,'n') && info.n > 0
-                    gauge.Value = round(50 * info.i / info.n);  % 第一遍占 0-50%
-                    lblProgress.Text = sprintf('转换 %d / %d', info.i, info.n);
+                    gauge.Value = round(50 * info.i / info.n);  % First pass 0-50%
+                    lblProgress.Text = sprintf('Converting %d / %d', info.i, info.n);
                 end
-                lblStatus.Text = sprintf('转换中: %s', shortPath(info.srcFolder, 80));
+                lblStatus.Text = sprintf('Converting: %s', shortPath(info.srcFolder, 80));
                 if strcmpi(getf(info,'level','info'), 'error')
                     appendLogLine(info.msg);
                 end
 
             case 'write'
                 if isfield(info,'n') && info.n > 0
-                    gauge.Value = round(50 + 50 * info.i / info.n);  % 第二遍 50-100%
-                    lblProgress.Text = sprintf('写入 %d / %d', info.i, info.n);
+                    gauge.Value = round(50 + 50 * info.i / info.n);  % Second pass 50-100%
+                    lblProgress.Text = sprintf('Writing %d / %d', info.i, info.n);
                 end
                 if isfield(info,'dstFile') && ~isempty(info.dstFile)
-                    lblStatus.Text = sprintf('写入: %s', info.dstFile);
+                    lblStatus.Text = sprintf('Writing: %s', info.dstFile);
                 end
                 appendLogLine(info.msg);
 
@@ -410,22 +410,22 @@ function dicom2bids_gui()
                 gauge.Value = 100;
 
                 if strcmp(info.phase, 'cancelled')
-                    lblStatus.Text = '已取消 (部分结果已保留)。';
-                    appendLogLine('=== 已取消 ===');
+                    lblStatus.Text = 'Cancelled (partial results retained).';
+                    appendLogLine('=== Cancelled ===');
                 else
-                    lblStatus.Text = '完成。';
-                    appendLogLine('=== 完成 ===');
+                    lblStatus.Text = 'Done.';
+                    appendLogLine('=== Done ===');
                 end
 
                 lblCounts.Text = sprintf( ...
-                    '扫描序列文件夹: %d   |   .nii 文件: %d   |   成功: %d   跳过: %d   失败: %d', ...
+                    'Series folders: %d   |   .nii files: %d   |   OK: %d   Skipped: %d   Failed: %d', ...
                     info.stats.folders, info.stats.nii, info.stats.ok, ...
                     info.stats.skipped, info.stats.failed);
 
                 populateResultTables(info.log);
 
             case 'error'
-                appendLogLine(['错误: ' info.msg]);
+                appendLogLine(['Error: ' info.msg]);
         end
         drawnow limitrate;
     end
@@ -440,8 +440,8 @@ function dicom2bids_gui()
         d = src.Data;
         if isempty(d) || row > size(d,1), return; end
 
-        % 失败/跳过表格: 第 1 列即源文件夹
-        % 警告表格:    第 2 列才是源文件夹
+        % Fail/Skip table: column 1 is the source folder
+        % Warnings table:  column 2 is the source folder
         if size(d,2) >= 3
             target = d{row, 2};
         else
@@ -454,24 +454,24 @@ function dicom2bids_gui()
         if isfolder(target)
             openInFileManager(target);
         else
-            uialert(fig, sprintf('找不到文件夹:\n%s', target), '提示');
+            uialert(fig, sprintf('Folder not found:\n%s', target), 'Info');
         end
     end
 
     function onClose(~, ~)
         if isRunning || isEvalRunning
             sel = uiconfirm(fig, ...
-                '操作正在进行中, 确定关闭吗?', '关闭确认', ...
-                'Options', {'取消并关闭', '继续运行'}, ...
+                'Operation in progress. Are you sure you want to close?', 'Confirm Close', ...
+                'Options', {'Cancel and Close', 'Keep Running'}, ...
                 'DefaultOption', 2, 'CancelOption', 2);
-            if strcmp(sel, '继续运行'), return; end
+            if strcmp(sel, 'Keep Running'), return; end
             cancelRequested = true;
             pause(0.5);
         end
         delete(fig);
     end
 
-    %% ---- 辅助 ----------------------------------------------------------
+    %% ---- Helper functions --------------------------------------------------
 
     function setRunningState(running)
         btnStart.Enable  = onoff(~running);
@@ -496,9 +496,9 @@ function dicom2bids_gui()
         tblFail.Data = cell(0,2);
         tblSkip.Data = cell(0,2);
         tblWarn.Data = cell(0,3);
-        tabFail.Title = '失败 (0)';
-        tabSkip.Title = '跳过 (0)';
-        tabWarn.Title = '警告 (0)';
+        tabFail.Title = 'Failed (0)';
+        tabSkip.Title = 'Skipped (0)';
+        tabWarn.Title = 'Warnings (0)';
         gauge.Value = 0;
         lblProgress.Text = '0 / 0';
         lblCounts.Text = '';
@@ -511,7 +511,7 @@ function dicom2bids_gui()
             txtLog.Value = {line};
         else
             cur{end+1,1} = line;
-            % 防止日志过长拖慢界面
+            % Prevent log from growing too large and slowing down UI
             if numel(cur) > 5000
                 cur = [{'... (older lines trimmed) ...'}; cur(end-4000+1:end)];
             end
@@ -521,7 +521,7 @@ function dicom2bids_gui()
     end
 
     function populateResultTables(L)
-        % 失败
+        % Failures
         failData = cell(numel(L.failures), 2);
         for i = 1:numel(L.failures)
             x = L.failures{i};
@@ -529,9 +529,9 @@ function dicom2bids_gui()
             failData{i,2} = oneLine(x.reason);
         end
         tblFail.Data = failData;
-        tabFail.Title = sprintf('失败 (%d)', numel(L.failures));
+        tabFail.Title = sprintf('Failed (%d)', numel(L.failures));
 
-        % 跳过
+        % Skipped
         skipData = cell(numel(L.skipped), 2);
         for i = 1:numel(L.skipped)
             x = L.skipped{i};
@@ -539,41 +539,41 @@ function dicom2bids_gui()
             skipData{i,2} = oneLine(x.reason);
         end
         tblSkip.Data = skipData;
-        tabSkip.Title = sprintf('跳过 (%d)', numel(L.skipped));
+        tabSkip.Title = sprintf('Skipped (%d)', numel(L.skipped));
 
-        % 警告 (聚合 5 类)
+        % Warnings (aggregated into 5 categories)
         warnRows = {};
         for i = 1:numel(L.patientNameMissing)
             x = L.patientNameMissing{i};
-            warnRows(end+1,:) = {'PatientName 缺失', x.src, oneLine(x.fallback)}; %#ok<AGROW>
+            warnRows(end+1,:) = {'PatientName Missing', x.src, oneLine(x.fallback)}; %#ok<AGROW>
         end
         for i = 1:numel(L.dateBadFormat)
             x = L.dateBadFormat{i};
-            warnRows(end+1,:) = {'日期格式异常', x.src, oneLine(x.fallback)}; %#ok<AGROW>
+            warnRows(end+1,:) = {'Date Format Invalid', x.src, oneLine(x.fallback)}; %#ok<AGROW>
         end
         for i = 1:numel(L.headerIssues)
             x = L.headerIssues{i};
-            warnRows(end+1,:) = {'头信息异常', x.src, oneLine(x.reason)}; %#ok<AGROW>
+            warnRows(end+1,:) = {'Header Issue', x.src, oneLine(x.reason)}; %#ok<AGROW>
         end
         for i = 1:numel(L.tracerUnknown)
             x = L.tracerUnknown{i};
-            warnRows(end+1,:) = {'Tracer 未识别', x.src, ...
+            warnRows(end+1,:) = {'Tracer Unrecognized', x.src, ...
                 oneLine(sprintf('SD="%s"  PN="%s"  Rad="%s"', x.sd, x.pn, x.rad))}; %#ok<AGROW>
         end
         for i = 1:numel(L.modalityUnknown)
             x = L.modalityUnknown{i};
-            warnRows(end+1,:) = {'Modality 未识别', x.src, ...
+            warnRows(end+1,:) = {'Modality Unrecognized', x.src, ...
                 oneLine(sprintf('SD="%s"  PN="%s"', x.sd, x.pn))}; %#ok<AGROW>
         end
         if isempty(warnRows), warnRows = cell(0,3); end
         tblWarn.Data = warnRows;
-        tabWarn.Title = sprintf('警告 (%d)', size(warnRows,1));
+        tabWarn.Title = sprintf('Warnings (%d)', size(warnRows,1));
     end
 end
 
 
 %% ====================================================================
-%% ============   独立辅助函数 (无闭包依赖)  ============================
+%% ============   Standalone helper functions (no closure deps) ========
 %% ====================================================================
 
 function openInFileManager(folder)
