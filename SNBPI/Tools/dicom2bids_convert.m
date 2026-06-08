@@ -697,7 +697,7 @@ function name = buildBidsName(p)
     if ~isempty(p.trc), parts{end+1} = sprintf('trc-%s', p.trc); end
     if ~isempty(p.acq), parts{end+1} = sprintf('acq-%s', p.acq); end
     if isfield(p,'run') && p.run >= 1
-        parts{end+1} = sprintf('run-%d', p.run);
+        parts{end+1} = sprintf('run-%03d', p.run);
     end
     parts{end+1} = p.suffix;
     name = strjoin(parts, '_');
