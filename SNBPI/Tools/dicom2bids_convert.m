@@ -272,8 +272,22 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
                     continue;
             end
 
-            sNum = getNum(bidsData, 'SeriesNumber');
-            if isnan(sNum), sNum = fi*1000 + ni; end
+            % --- Derive sort key for run ordering ----------------------------
+            % Primary: InstanceNumber extracted from dcm2niix filename (_\d+$).
+            % This is a DICOM-standard globally unique incrementing counter
+            % and is numerically reliable for frame ordering.
+            % Fallback: SeriesNumber from JSON, then fi*1000+ni as last resort.
+            tok = regexp(base, '_(\d+)$', 'tokens', 'once');
+            if ~isempty(tok)
+                sNum = str2double(tok{1});
+            else
+                sNum = getNum(bidsData, 'SeriesNumber');
+                if isnan(sNum), sNum = fi*1000 + ni; end
+            end
+
+            % Secondary: AcquisitionTime parsed to total seconds for
+            % cross-checking against InstanceNumber order.
+            acqTimeSec = parseAcquisitionTime(getStr(bidsData, 'AcquisitionTime'));
 
             plan = struct();
             plan.srcFolder    = srcFolder;
@@ -287,6 +301,7 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
             plan.acq          = acqLabel;
             plan.suffix       = suffix;
             plan.seriesNumber = sNum;
+            plan.acqTimeSec   = acqTimeSec;
             plan.issues       = issues;
             plan.fullData     = fullData;
             plans{end+1, 1} = plan; %#ok<AGROW>
@@ -303,10 +318,29 @@ function dicom2bids_convert(DirA, DirB, dcm2niixPath, varargin)
         for k = 1:numel(uKeys)
             inds = find(gIdx == k);
             if numel(inds) >= 2
+                % Primary sort: InstanceNumber (from filename _\d+, numeric)
                 sNums = cellfun(@(p) p.seriesNumber, plans(inds));
                 [~, order] = sort(sNums);
                 for r = 1:numel(inds)
                     plans{inds(order(r))}.run = r;
+                end
+
+                % Cross-check against AcquisitionTime order (parsed seconds).
+                % Warn when the two orderings disagree — indicates unusual DICOM.
+                acqSecs = cellfun(@(p) p.acqTimeSec, plans(inds));
+                if all(isfinite(acqSecs))
+                    [~, orderAcq] = sort(acqSecs);
+                    if ~isequal(order, orderAcq)
+                        log.headerIssues{end+1,1} = struct( ...
+                            'src', plans{inds(1)}.srcFolder, ...
+                            'reason', sprintf( ...
+                                ['Run order mismatch: InstanceNumber order differs from ' ...
+                                 'AcquisitionTime order. Used InstanceNumber. ' ...
+                                 'InstanceNumber ranks: [%s]  AcqTime ranks: [%s]'], ...
+                                num2str(order(:)'), num2str(orderAcq(:)')));
+                        fprintf(['  WARNING: run order mismatch (InstanceNumber vs ' ...
+                                 'AcquisitionTime) in %s\n'], plans{inds(1)}.srcFolder);
+                    end
                 end
             else
                 plans{inds}.run = 0;
@@ -810,6 +844,25 @@ function writeParticipantsTsv(path, newMap)
 end
 
 function s = nz(s), if isempty(s), s = 'n/a'; end, end
+
+function sec = parseAcquisitionTime(t)
+% Parse DICOM AcquisitionTime string (HH:MM:SS.ffffff or HHMMSS.ffffff)
+% to total seconds. Returns NaN on failure.
+    sec = NaN;
+    if isempty(t), return; end
+    t = strtrim(t);
+    % Handle both "HH:MM:SS.fff" and "HHMMSS.fff" formats
+    tok = regexp(t, '^(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)$', 'tokens', 'once');
+    if isempty(tok)
+        tok = regexp(t, '^(\d{2})(\d{2})(\d{2}(?:\.\d*)?)$', 'tokens', 'once');
+    end
+    if isempty(tok), return; end
+    h = str2double(tok{1});
+    m = str2double(tok{2});
+    s = str2double(tok{3});
+    if any(isnan([h m s])), return; end
+    sec = h*3600 + m*60 + s;
+end
 
 function appendLog(path, srcRoot, dstRoot, dcmCmd, dcmVer, ...
                    nFolders, nNii, nOk, nSkip, nFail, cancelled, log)
