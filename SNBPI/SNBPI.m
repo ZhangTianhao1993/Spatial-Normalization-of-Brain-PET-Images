@@ -10,6 +10,7 @@ classdef SNBPI < matlab.apps.AppBase
         OverlayViewerMenu           matlab.ui.container.Menu
         DeleteFilesMenu             matlab.ui.container.Menu
         Dicom2BidsMenu              matlab.ui.container.Menu
+        NiiCropperMenu              matlab.ui.container.Menu
         HelpMenu                    matlab.ui.container.Menu
         CheckforUpdatesMenu         matlab.ui.container.Menu
         AtlasROIReadmeMenu          matlab.ui.container.Menu
@@ -132,6 +133,10 @@ classdef SNBPI < matlab.apps.AppBase
             dicom2bids_gui;
         end
 
+        function NiiCropperMenuSelected(app, event)
+            NiiCropper;
+        end
+
         function CheckforUpdatesMenuSelected(app, event)
             checkUpdate(true);
         end
@@ -182,6 +187,10 @@ classdef SNBPI < matlab.apps.AppBase
             app.Dicom2BidsMenu = uimenu(app.ToolsMenu);
             app.Dicom2BidsMenu.MenuSelectedFcn = createCallbackFcn(app, @Dicom2BidsMenuSelected, true);
             app.Dicom2BidsMenu.Text = 'DICOM to BIDS';
+
+            app.NiiCropperMenu = uimenu(app.ToolsMenu);
+            app.NiiCropperMenu.MenuSelectedFcn = createCallbackFcn(app, @NiiCropperMenuSelected, true);
+            app.NiiCropperMenu.Text = 'NIfTI Cropper';
 
             app.HelpMenu = uimenu(app.UIFigure);
             app.HelpMenu.Text = 'Help';
