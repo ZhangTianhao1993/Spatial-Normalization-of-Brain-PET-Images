@@ -21,6 +21,23 @@ function exportMainToFile(fig, outFile, dpi)
 
     s = fig.UserData;
     if ~s.isDataLoaded, return; end
+
+    if s.mipMode
+        bgColor = [0 0 0];
+        f = figure('Visible','off', 'Color', bgColor, ...
+                   'Units','pixels', 'Position',[0 0 600 500], ...
+                   'MenuBar','none', 'ToolBar','none', ...
+                   'NumberTitle','off', 'Name','mip_export', ...
+                   'InvertHardcopy','off');
+        cleaner = onCleanup(@() delete(f));
+        ax = axes(f, 'Units','normalized', ...
+                  'Position',[0.05 0.05 0.90 0.90], 'Color','k');
+        rov.render.renderMipOnAxes(ax, s);
+        exportgraphics(f, outFile, ...
+            'Resolution', dpi, 'BackgroundColor', bgColor);
+        return;
+    end
+
     if isempty(s.sliceList), return; end
 
     nR = s.nRows;

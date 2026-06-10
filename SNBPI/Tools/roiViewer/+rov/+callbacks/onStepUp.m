@@ -8,6 +8,7 @@ function onStepUp(fig)
 %   fig : main uifigure handle.
 
     s = fig.UserData;
+    if s.mipMode, return; end
     s.pageStart  = max(1, s.pageStart - 1);
     fig.UserData = s;
     rov.render.renderPage(fig);

@@ -17,6 +17,15 @@ function renderPage(fig)
 
     s = fig.UserData;
     if ~s.isDataLoaded, return; end
+
+    if s.mipMode
+        ax = s.h.imageAxesCell{1};
+        cla(ax);
+        rov.render.renderMipOnAxes(ax, s);
+        s.h.sliceInfoLbl.Text = sprintf('MIP (%s)', s.viewDir);
+        return;
+    end
+
     if isempty(s.sliceList)
         rov.util.setStatus(fig, ...
             'No slices to display. Adjust Spacing or View direction.');

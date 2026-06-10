@@ -22,75 +22,14 @@ function renderSliceOnAxes(ax, sliceIdx, axLabel, fig)
 
     isCont = rov.util.isContinuousMode(s);
 
-    % Resolve display range filter (applies to atlas values, not background)
-    hasDispRange = (isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)) || ...
-                   (isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax));
-    hasDispAbs   = isfield(s,'dispRangeAbs')  && isfinite(s.dispRangeAbs);
-    hasCluster   = isfield(s,'clusterSize')   && isfinite(s.clusterSize) && s.clusterSize > 0;
-
     if isCont
         atlasSlice = rov.compute.extractSlice(s.atlasVols{1}, sliceIdx, s.viewDir);
-        validMask  = isfinite(atlasSlice) & atlasSlice ~= 0;
-        if hasDispRange
-            if isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)
-                validMask = validMask & (atlasSlice >= s.dispRangeMin);
-            end
-            if isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax)
-                validMask = validMask & (atlasSlice <= s.dispRangeMax);
-            end
-        end
-        if hasDispAbs
-            validMask = validMask & (abs(atlasSlice) >= s.dispRangeAbs);
-        end
-        if hasCluster
-            validMask = rov.util.filterByClusterSize(validMask, s.clusterSize);
-        end
-        nC         = size(s.cmap, 1);
-
-        % Compute the active range fresh so rendering NEVER depends on
-        % whether s.atlasVmin/Vmax was already synced into fig.UserData.
-        % For a binary mask (only value = 1) this gives vmin == vmax == 1
-        % and we map every voxel to the colormap top - the bug fix.
-        if isfield(s,'cbUserMin') && isfinite(s.cbUserMin) && ...
-           isfield(s,'cbUserMax') && isfinite(s.cbUserMax)
-            vmin = double(s.cbUserMin);
-            vmax = double(s.cbUserMax);
-            if vmax < vmin, t = vmin; vmin = vmax; vmax = t; end
-        else
-            vol3d = s.atlasVols{1};
-            vals  = vol3d(isfinite(vol3d) & vol3d ~= 0);
-            if isempty(vals)
-                vmin = 0;  vmax = 1;
-            else
-                vmin = double(min(vals));
-                vmax = double(max(vals));
-            end
-            % User may have set ONE of the two; honour that
-            if isfield(s,'cbUserMin') && isfinite(s.cbUserMin)
-                vmin = double(s.cbUserMin);
-            end
-            if isfield(s,'cbUserMax') && isfinite(s.cbUserMax)
-                vmax = double(s.cbUserMax);
-            end
-            if vmax < vmin, t = vmin; vmin = vmax; vmax = t; end
-        end
-        isDeg = ~(vmax > vmin);
-
-        if isDeg
-            cidx = (nC/2) * ones(size(atlasSlice));
-        else
-            wN   = max(0, min(1, (atlasSlice - vmin) / (vmax - vmin)));
-            cidx = min(nC, max(1, round(wN*(nC-1)) + 1));
-        end
-
-        for ch = 1:3
-            chan = rgbSlice(:,:,ch);
-            col  = s.cmap(:, ch);
-            chan(validMask) = chan(validMask) * (1 - s.alpha) + ...
-                              col(cidx(validMask)) * s.alpha;
-            rgbSlice(:,:,ch) = chan;
-        end
+        rgbSlice = rov.render.overlayContinuous(rgbSlice, atlasSlice, s);
     else
+        hasDispRange = (isfield(s,'dispRangeMin') && isfinite(s.dispRangeMin)) || ...
+                       (isfield(s,'dispRangeMax') && isfinite(s.dispRangeMax));
+        hasDispAbs   = isfield(s,'dispRangeAbs')  && isfinite(s.dispRangeAbs);
+        hasCluster   = isfield(s,'clusterSize')   && isfinite(s.clusterSize) && s.clusterSize > 0;
         for e = 1:numel(s.colorEntries)
             en  = s.colorEntries(e);
             asl = rov.compute.extractSlice(s.atlasVols{en.atlasIdx}, sliceIdx, s.viewDir);

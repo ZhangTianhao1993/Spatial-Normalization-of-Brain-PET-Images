@@ -35,7 +35,7 @@ function computeSliceList(fig)
 
     nPos    = floor((dim - center) / voxSp);
     nNeg    = floor((center - 1)   / voxSp);
-    rawList = center + round((-nNeg:nPos) * voxSp);
+    rawList = round(center + round((-nNeg:nPos) * voxSp));
     rawList = unique(rawList);
     valid   = rawList >= 1 & rawList <= dim;
 

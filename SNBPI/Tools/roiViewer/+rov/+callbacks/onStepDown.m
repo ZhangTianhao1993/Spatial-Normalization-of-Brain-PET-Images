@@ -9,6 +9,7 @@ function onStepDown(fig)
 %   fig : main uifigure handle.
 
     s = fig.UserData;
+    if s.mipMode, return; end
     maxStart     = max(1, numel(s.sliceList) - s.nRows*s.nCols + 1);
     s.pageStart  = min(maxStart, s.pageStart + 1);
     fig.UserData = s;

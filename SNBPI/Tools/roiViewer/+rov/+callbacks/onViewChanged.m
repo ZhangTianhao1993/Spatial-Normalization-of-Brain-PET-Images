@@ -16,7 +16,11 @@ function onViewChanged(fig)
     s.viewDir    = s.h.ddView.Value;
     fig.UserData = s;
     if s.isDataLoaded
-        rov.compute.computeSliceList(fig);
-        rov.render.renderPage(fig);
+        if s.mipMode
+            rov.render.renderPage(fig);
+        else
+            rov.compute.computeSliceList(fig);
+            rov.render.renderPage(fig);
+        end
     end
 end
